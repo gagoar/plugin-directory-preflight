@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plugin Directory Preflight: guide</title>
+<meta name="description" content="How to run the plugin directory preflight: the workflow, the four scripts, how the upload scan behaves, and how to pin a hold with the probe.">
+<link rel="canonical" href="https://gagoar.github.io/plugin-directory-preflight/guide.html">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Plugin Directory Preflight: guide">
+<meta property="og:description" content="How to run the plugin directory preflight: the workflow, the four scripts, how the upload scan behaves, and how to pin a hold with the probe.">
+<meta property="og:url" content="https://gagoar.github.io/plugin-directory-preflight/guide.html">
+<meta property="og:image" content="https://gagoar.github.io/plugin-directory-preflight/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Plugin Directory Preflight: guide">
+<meta name="twitter:description" content="How to run the plugin directory preflight: the workflow, the four scripts, how the upload scan behaves, and how to pin a hold with the probe.">
+<meta name="twitter:image" content="https://gagoar.github.io/plugin-directory-preflight/assets/og.png">
+<style>
+:root {
+  --ivory:#FAF9F5; --slate:#141413; --clay:#D97757; --clay-d:#B85C3E; --oat:#E3DACC;
+  --olive:#788C5D; --rust:#B04A3F; --gray-150:#F0EEE6; --gray-300:#D1CFC5; --gray-500:#87867F;
+  --gray-700:#3D3D3A; --white:#FFFFFF;
+  --serif: ui-serif, Georgia, "Times New Roman", serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --border: 1.5px solid var(--gray-300);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--sans); background: var(--ivory); color: var(--gray-700); font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+a { color: var(--clay-d); }
+code { font-family: var(--mono); font-size: 0.9em; background: var(--gray-150); padding: 1px 6px; border-radius: 4px; color: var(--slate); }
+h1, h2, h3 { font-family: var(--serif); font-weight: 500; color: var(--slate); letter-spacing: -0.01em; }
+h2 { font-size: 30px; line-height: 1.2; margin-bottom: 12px; }
+.eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--clay); margin-bottom: 12px; }
+section { padding: 64px 0; }
+.lead { font-size: 18px; max-width: 640px; margin-bottom: 28px; }
+
+nav.top { display: flex; justify-content: space-between; align-items: center; padding: 24px 0; }
+nav.top .brand { font-family: var(--serif); font-size: 22px; color: var(--slate); text-decoration: none; display: flex; align-items: center; gap: 10px; }
+nav.top .brand img { width: 28px; height: 28px; }
+nav.top .links { display: flex; gap: 22px; font-size: 14px; }
+nav.top .links a { color: var(--gray-700); text-decoration: none; }
+nav.top .links a:hover { color: var(--clay-d); }
+
+.hero { padding: 56px 0 72px; }
+.hero h1 { font-size: clamp(38px, 6vw, 64px); line-height: 1.05; margin-bottom: 20px; max-width: 760px; }
+.hero h1 em { color: var(--clay); font-style: italic; }
+.hero .lead { color: var(--gray-700); }
+
+.install { background: var(--slate); border-radius: 12px; padding: 18px 22px; position: relative; max-width: 680px; margin-bottom: 20px; }
+.install pre { font-family: var(--mono); font-size: 13px; line-height: 1.8; color: #E8E6DE; overflow-x: auto; padding-right: 76px; }
+.install .c { color: var(--clay); } .install .a { color: #9BB07C; }
+.copy { position: absolute; top: 12px; right: 12px; font-family: var(--mono); font-size: 12px; background: #2a2a28; color: #E8E6DE; border: 1px solid #4a4a46; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+.copy:hover { background: #3a3a37; }
+.btns { display: flex; gap: 12px; flex-wrap: wrap; }
+.btn { display: inline-block; padding: 10px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; text-decoration: none; border: var(--border); color: var(--slate); background: var(--white); }
+.btn.primary { background: var(--clay); border-color: var(--clay); color: var(--white); }
+.btn:hover { border-color: var(--clay); }
+
+.demo { background: var(--white); border: var(--border); border-radius: 14px; padding: 26px; }
+.toggle { display: inline-flex; border: var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
+.toggle button { font-family: var(--mono); font-size: 13px; padding: 9px 18px; border: 0; background: var(--white); color: var(--gray-700); cursor: pointer; }
+.toggle button[aria-pressed="true"] { background: var(--slate); color: var(--white); }
+.demo-meta { display: flex; align-items: center; gap: 12px; font-family: var(--mono); font-size: 13px; color: var(--gray-500); margin-bottom: 14px; }
+.badge { min-width: 34px; height: 34px; padding: 0 10px; font-size: 15px !important; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-family: var(--serif); font-size: 21px; }
+.badge.d { background: rgba(176,74,63,0.14); color: var(--rust); }
+.badge.a { background: rgba(120,140,93,0.18); color: var(--olive); }
+.sample { font-family: var(--mono); font-size: 14.5px; line-height: 1.7; color: var(--slate); background: var(--gray-150); border-radius: 10px; padding: 16px 18px; min-height: 150px; white-space: pre-wrap; overflow-x: auto; }
+.sample mark { background: rgba(176,74,63,0.16); color: #8a3228; border-radius: 4px; padding: 0 3px; }
+.demo-note { margin-top: 14px; font-size: 14px; color: var(--gray-500); }
+
+.report { background: var(--slate); border-radius: 12px; padding: 20px 24px; overflow-x: auto; }
+.report pre { font-family: var(--mono); font-size: 12.5px; line-height: 1.7; color: #E8E6DE; }
+.report .k { color: var(--clay); } .report .g { color: #9BB07C; } .report .d { color: #8a8880; }
+.two > * { min-width: 0; }
+.two { display: grid; grid-template-columns: 1fr 1.2fr; gap: 36px; align-items: center; }
+@media (max-width: 760px) { .two { grid-template-columns: 1fr; gap: 24px; } section { padding: 44px 0; } nav.top .links a:not(:last-child) { display: none; } }
+
+.rules { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 12px; margin-top: 24px; }
+.rule { background: var(--white); border: var(--border); border-radius: 10px; padding: 14px 16px; }
+.rule .n { font-family: var(--mono); font-size: 11px; color: var(--gray-500); }
+.rule .t { font-family: var(--serif); font-size: 17px; color: var(--slate); margin: 2px 0 4px; }
+.rule .e { font-size: 13px; color: var(--gray-700); line-height: 1.45; }
+
+.proof { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+@media (max-width: 760px) { .proof { grid-template-columns: 1fr; } }
+.stat { background: var(--white); border: var(--border); border-radius: 12px; padding: 20px 22px; }
+.stat .big { font-family: var(--serif); font-size: 34px; color: var(--slate); line-height: 1.1; }
+.stat p { font-size: 14px; margin-top: 6px; }
+
+.cta { text-align: center; background: var(--oat); border-radius: 16px; padding: 48px 24px; }
+.cta .install { margin: 20px auto; text-align: left; }
+footer { border-top: var(--border); padding: 28px 0 48px; margin-top: 56px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--gray-500); }
+footer a { color: var(--gray-500); margin-right: 18px; text-decoration: none; }
+footer a:hover { color: var(--slate); }
+.chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:22px; } .chip { font-family: var(--mono); font-size: 12.5px; background: var(--white); border: var(--border); border-radius: 999px; padding: 4px 12px; color: var(--gray-700); }
+.cards { display:grid; grid-template-columns: repeat(3,1fr); gap:14px; margin-top:22px; } @media (max-width:760px){ .cards{grid-template-columns:1fr;} }
+.card { background: var(--white); border: var(--border); border-radius: 12px; padding: 20px 22px; } .card h3 { font-size: 19px; margin-bottom: 6px; } .card p { font-size: 14px; }
+</style>
+<style>
+.guide h2 { margin-top: 44px; } .guide h3 { font-size: 20px; margin: 22px 0 6px; } .guide p, .guide li { margin-bottom: 10px; max-width: 760px; }
+.guide ol, .guide ul { padding-left: 22px; margin-bottom: 14px; } .guide pre.code { background: var(--slate); color: #E8E6DE; font-family: var(--mono); font-size: 13px; line-height: 1.7; border-radius: 10px; padding: 14px 18px; overflow-x: auto; margin: 10px 0 16px; }
+table.t { border-collapse: collapse; width: 100%; margin: 12px 0 20px; font-size: 14px; background: var(--white); border: var(--border); border-radius: 10px; overflow: hidden; }
+table.t th, table.t td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid var(--gray-150); } table.t th { background: var(--gray-150); font-family: var(--mono); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--gray-700); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="top">
+    <a class="brand" href="./"><img src="assets/favicon.svg" alt="">Plugin Directory Preflight</a>
+    <div class="links">
+      <a href="./#demo">Demo</a>
+      <a href="./#probe">Probe</a>
+      <a href="guide.html">Guide</a>
+      <a href="https://github.com/gagoar/plugin-directory-preflight">GitHub</a>
+    </div>
+  </nav>
+
+  <main class="guide">
+    <div class="eyebrow" style="margin-top:24px">Guide</div>
+    <h1 style="font-size:44px;line-height:1.1;margin-bottom:14px">Getting a plugin through the directory scan</h1>
+    <p class="lead">The scan cannot be run locally, so this plugin runs an approximation of it, reads the report compactly, and bisects what the approximation cannot explain.</p>
+
+    <h2>Install</h2>
+    <pre class="code">/plugin marketplace add gagoar/plugin-directory-preflight
+/plugin install plugin-directory-preflight@plugin-directory-preflight
+/reload-plugins</pre>
+    <p>Then ask Claude to run the plugin directory preflight on the repository you are about to upload.</p>
+
+    <h2>The workflow</h2>
+    <ol>
+      <li><strong>Find the plugin root</strong>: the directory with <code>.claude-plugin/plugin.json</code>, at the repo root or in <code>plugin/</code>.</li>
+      <li><strong>Check the gate is current</strong>: <code>node scripts/install-gate.ts &lt;repo&gt; --check</code>. Install or update it if not.</li>
+      <li><strong>Run the gate</strong> over the whole repository: <code>node scripts/check-plugin-safety.ts .</code>. Comments, documents and generated files count.</li>
+      <li><strong>Validate</strong>: <code>claude plugin validate &lt;plugin-root&gt; --strict</code>.</li>
+      <li><strong>Fix every hit in one pass</strong>, then run steps 3 and 4 again. Each extra round is an upload.</li>
+      <li><strong>Bump the version</strong>, tag if the plugin ships release assets, and upload.</li>
+      <li><strong>Read the report</strong> with the report reader. Paste only the <code>diagnostics</code> array, never the whole report.</li>
+    </ol>
+
+    <h2>The scripts</h2>
+    <p>Plain Node 22.6 or later, no dependencies, run as <code>node scripts/&lt;name&gt;.ts</code>.</p>
+    <h3>check-plugin-safety.ts</h3>
+    <p>The gate. Takes one or more roots (default <code>.</code>); prints one line per problem and exits 1 if there are any.</p>
+    <h3>install-gate.ts</h3>
+    <pre class="code">node scripts/install-gate.ts &lt;repo&gt;           install or update the gate; add the CI workflow if missing
+node scripts/install-gate.ts &lt;repo&gt; --check   report drift only; exit 1 if anything is missing or old
+node scripts/install-gate.ts &lt;repo&gt; --force   also overwrite a workflow that differs from the template</pre>
+    <h3>read-report.ts</h3>
+    <pre class="code">node scripts/read-report.ts report.json</pre>
+    <p>Prints the phases, each hold or blocking finding, the file the scan named, and the readable files that sort before it. Exits 1 on a hold.</p>
+    <h3>make-probe.ts</h3>
+    <pre class="code">node scripts/make-probe.ts round1  &lt;file&gt; &lt;outDir&gt; [slices]
+node scripts/make-probe.ts narrow  &lt;outDir&gt; &lt;slice&gt; [slices]
+node scripts/make-probe.ts windows &lt;outDir&gt; &lt;slice&gt;
+node scripts/make-probe.ts explain &lt;outDir&gt; &lt;reported-file&gt;</pre>
+
+    <h2>How the scan behaves</h2>
+    <ul>
+      <li>It names only the <strong>first</strong> match in path order. A match in an earlier-sorting file hides every later one, and fixing it can make the next one appear.</li>
+      <li>Two levels: a <strong>file-level</strong> finding (a remote host and a credential-looking reference in one file) and a <strong>plugin-level</strong> one (any credential-looking reference in one script plus any <code>https://</code> string in any script).</li>
+      <li>Comments, documents and generated bundles are read like code. Prose can be read as shell.</li>
+      <li>A <strong>hold</strong> sends the version to a human reviewer. It is not a rejection, but it comes back on every version.</li>
+    </ul>
+
+    <h2>What held a real plugin</h2>
+    <table class="t"><thead><tr><th>What matches</th><th>What to do</th></tr></thead><tbody><tr><td>A plugin name within two edits of a directory name, or the same words reordered</td><td>Choose a long, descriptive name and compare it with the public catalog names. The display name does not count.</td></tr><tr><td>A script or document of 256 KiB or more</td><td>Split vendored code into readable files under the limit.</td></tr><tr><td>One word longer than about 4 KiB</td><td>Split the string literal with concatenation.</td></tr><tr><td>A shell command that prints the environment, alone in a call or a condition</td><td>Rewrite the call or the variable. Never spell it in prose, comments or documents.</td></tr><tr><td>A template placeholder whose expression names a credential</td><td>Rename it, or build the string by concatenation.</td></tr><tr><td>Prose that reads as a shell line</td><td>Reword. Strip comments from vendored bundles.</td></tr><tr><td>A glob in a document that covers images or fonts</td><td>Use a path with no images under it.</td></tr><tr><td>A remote host and an environment reference in one file</td><td>Move one of them.</td></tr><tr><td>A native executable in the repository</td><td>Ship source and fetch a pinned build.</td></tr></tbody></table>
+
+    <h2>Pinning a hold with the probe</h2>
+    <ol>
+      <li>Run <code>round1</code> on the file the finding names. It writes a small plugin whose <code>probe/</code> holds 16 slices.</li>
+      <li>Push that folder to a throwaway public repository and upload it.</li>
+      <li>The finding names a slice. Run <code>narrow</code> on it, push, upload.</li>
+      <li>At a few lines, run <code>windows</code>. The smallest window that triggers shows how many lines the trigger needs. <code>explain</code> prints the original lines.</li>
+      <li>Fix every instance of that shape in the real plugin, upload it, and delete the probe repository.</li>
+    </ol>
+
+    <h2>Bundling third-party code</h2>
+    <p>Keep each bundled file under 256 KiB and readable. Strip comments from vendored bundles, split long string literals, rewrite calls and variables that read as lone command words, and neutralize credential-named placeholders. Make each build-time transform fail the build if its target text is not found, so a dependency upgrade cannot silently undo it.</p>
+
+    <h2>FAQ</h2>
+    <p><strong>Is the gate the real scan?</strong> No. It is built from observed behavior. A clean run does not guarantee a clean report, and a hit may not hold in the real scan.</p>
+    <p><strong>What if only false positives remain?</strong> A hold goes to a human reviewer. Use the portal's help action with a short note: what the plugin does and which file matches.</p>
+    <p><strong>Does it send anything anywhere?</strong> No. The scripts read the directory you point them at and write only where you tell them to.</p>
+  </main>
+
+  <footer>
+    <div><a href="https://github.com/gagoar/plugin-directory-preflight">GitHub</a><a href="https://github.com/gagoar/plugin-directory-preflight/releases">Releases</a><a href="guide.html">Guide</a><a href="https://github.com/gagoar/plugin-directory-preflight#privacy">Privacy</a><a href="https://github.com/gagoar/plugin-directory-preflight#terms">Terms</a></div>
+    <div>MIT · v0.1.0 · by <a href="https://github.com/gagoar" style="margin:0">gagoar</a></div>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var cmd = '/plugin marketplace add gagoar/plugin-directory-preflight\n/plugin install plugin-directory-preflight@plugin-directory-preflight\n/reload-plugins';
+  document.querySelectorAll('.copy').forEach(function (b) {
+    b.onclick = function () {
+      navigator.clipboard.writeText(cmd).then(function () {
+        b.textContent = 'Copied';
+        setTimeout(function () { b.textContent = 'Copy'; }, 1500);
+      });
+    };
+  });
+})();
+</script>
+</body>
+</html>
