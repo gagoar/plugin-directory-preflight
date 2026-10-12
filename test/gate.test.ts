@@ -1,0 +1,53 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { COMMAND_WORD, DEEP_GLOB, ENV_WORD, PLACEHOLDER, SCHEME, run, tree } from "./helpers.ts";
+
+const KIB = 1024;
+const BIG_FILE_KIB = 300;
+const ELF_HEAD = "\x7fELF";
+
+interface Case {
+  readonly name: string;
+  readonly files: Readonly<Record<string, string>>;
+  readonly fails: boolean;
+  readonly mentions?: string;
+}
+
+const CASES: readonly Case[] = [
+  { name: "a command word alone in a call", files: { "a.js": `run("${COMMAND_WORD}");\n` }, fails: true, mentions: "command word on its own" },
+  { name: "a command word alone in a condition", files: { "a.js": `if (${COMMAND_WORD} && ok) {}\n` }, fails: true, mentions: "command word on its own" },
+  { name: "a command word given arguments", files: { "a.js": `run("${COMMAND_WORD}", 1);\nconst is${COMMAND_WORD} = 1;\n` }, fails: false },
+  { name: "the same shape in a comment", files: { "a.js": `// run("${COMMAND_WORD}");\n` }, fails: true, mentions: "command word on its own" },
+  { name: "the same shape in a document", files: { "README.md": `Call run(${COMMAND_WORD}) here.\n` }, fails: true },
+  { name: "a placeholder naming a credential", files: { "a.js": `const a = \`${PLACEHOLDER}\`;\n` }, fails: true, mentions: "names a credential" },
+  { name: "a placeholder with an ordinary name", files: { "a.js": "const a = `${name}`;\n" }, fails: false },
+  {
+    name: "a document glob that covers an image",
+    files: { "README.md": `Write(./docs/${DEEP_GLOB})\n`, "docs/assets/a.png": "x" },
+    fails: true,
+    mentions: "covers 1 image",
+  },
+  { name: "a document glob with no image under it", files: { "README.md": `Write(./src/${DEEP_GLOB})\n`, "docs/assets/a.png": "x" }, fails: false },
+  { name: "Markdown bold is not a glob", files: { "README.md": `Use ${DEEP_GLOB}care${DEEP_GLOB} here.\n`, "docs/assets/a.png": "x" }, fails: false },
+  { name: "a bare broad glob names no directory", files: { "a.js": `grant("./${DEEP_GLOB}");\n`, "docs/assets/a.png": "x" }, fails: false },
+  { name: "a host and an environment reference in one file", files: { "a.js": `${ENV_WORD};\n// ${SCHEME}example.com/a\n` }, fails: true, mentions: "remote host" },
+  { name: "an environment reference alone", files: { "a.js": `${ENV_WORD};\n` }, fails: false },
+  { name: "a host alone", files: { "a.js": `// ${SCHEME}example.com/a\n` }, fails: false },
+  { name: "a script of 256 KiB or more", files: { "a.js": "a".repeat(BIG_FILE_KIB * KIB) }, fails: true, mentions: "256 KiB" },
+  { name: "a native executable", files: { "bin/tool": `${ELF_HEAD}${"\0".repeat(KIB)}` }, fails: true, mentions: "cannot read it" },
+  { name: "an unscoped write grant", files: { "skills/x/SKILL.md": "---\nname: x\nallowed-tools: Write\n---\nbody\n" }, fails: true, mentions: "no path scope" },
+  { name: "a clean tree", files: { "a.js": "export const a = 1;\n", "README.md": "Plain text.\n" }, fails: false },
+];
+
+CASES.forEach(({ name, files, fails, mentions }) => {
+  test(`gate: ${name}`, () => {
+    const result = run("check-plugin-safety.ts", [tree(files)]);
+    assert.equal(result.status, fails ? 1 : 0, result.out);
+    if (mentions !== undefined) assert.match(result.out, new RegExp(mentions));
+  });
+});
+
+test("gate: the repository passes its own rules", () => {
+  const result = run("check-plugin-safety.ts", [`${import.meta.dirname}/..`]);
+  assert.equal(result.status, 0, result.out);
+});

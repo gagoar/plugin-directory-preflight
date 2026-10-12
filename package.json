@@ -1,0 +1,12 @@
+{
+  "name": "plugin-directory-preflight",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Scripts behind the plugin-directory-preflight skill. No dependencies.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"test/*.test.ts\"",
+    "gate": "node scripts/check-plugin-safety.ts ."
+  },
+  "engines": { "node": ">=22.6" }
+}
