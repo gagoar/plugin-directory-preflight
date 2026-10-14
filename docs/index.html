@@ -159,7 +159,7 @@ footer a:hover { color: var(--slate); }
     <div class="eyebrow">What you get</div>
     <h2>Four scripts and one skill.</h2>
     <div class="cards" style="grid-template-columns:repeat(2,1fr)">
-      <div class="card"><h3>The gate</h3><p>Nine checks for what the scan held a plugin for: unscoped grants, big files, committed binaries, command words, credential-named placeholders, image globs and more. Runs in CI.</p></div>
+      <div class="card"><h3>The gate</h3><p>Ten checks for what the scan held a plugin for: unscoped grants, big files, committed binaries, command words, credential-named placeholders, image names and globs and more. Runs in CI.</p></div>
       <div class="card"><h3>The installer</h3><p>Copies the gate and a CI workflow into any plugin repo, including a <code>plugin/</code> subdirectory. <code>--check</code> reports drift.</p></div>
       <div class="card"><h3>The report reader</h3><p>Turns a 40k-token scan report into a screenful: the findings, the file named, and the files that sort before it and could be masking the next match.</p></div>
       <div class="card"><h3>The probe</h3><p>Cuts a file into slices that sort in line order, so each upload halves the search. About three uploads reach a single line.</p></div>
@@ -187,7 +187,7 @@ footer a:hover { color: var(--slate); }
 
   <section id="rules" style="padding-top:0">
     <div class="eyebrow">The gate</div>
-    <h2>Nine checks, each from a real hold.</h2>
+    <h2>Ten checks, each from a real hold.</h2>
     <div class="rules" id="rule-grid"></div>
   </section>
 
@@ -209,7 +209,7 @@ footer a:hover { color: var(--slate); }
 
   <footer>
     <div><a href="https://github.com/gagoar/plugin-directory-preflight">GitHub</a><a href="https://github.com/gagoar/plugin-directory-preflight/releases">Releases</a><a href="guide.html">Guide</a><a href="https://github.com/gagoar/plugin-directory-preflight#privacy">Privacy</a><a href="https://github.com/gagoar/plugin-directory-preflight#terms">Terms</a></div>
-    <div>MIT · v0.1.0 · by <a href="https://github.com/gagoar" style="margin:0">gagoar</a></div>
+    <div>MIT · v0.2.0 · by <a href="https://github.com/gagoar" style="margin:0">gagoar</a></div>
   </footer>
 </div>
 
@@ -242,13 +242,14 @@ footer a:hover { color: var(--slate); }
 
   var rules = [
     ['Unscoped grants', 'A skill, agent or command that pre-approves writing or running commands with no path.'],
-    ['Whole-environment reads', 'Shipped code that copies every variable instead of naming the ones it needs.'],
+    ['Whole-environment reads', 'Code, test files and comments that copy every variable instead of naming the ones they need.'],
     ['Committed binaries', 'A native executable the scan cannot read.'],
     ['Big files', 'Any file over 5 MiB, or a script or document of 256 KiB or more.'],
-    ['Command words alone', 'A shell command that prints the environment, alone in a call or a condition.'],
+    ['Command words alone', 'A shell command that prints the environment, alone in a call, a condition or a pipe-joined word list.'],
     ['Credential-named placeholders', 'A template placeholder whose expression names a key, token or secret.'],
     ['Image globs', 'A glob in a document that covers images or fonts the scan cannot read.'],
-    ['Host beside environment', 'A remote host and an environment reference in one file.'],
+    ['Image names in scripts', 'A script that names an image or a font that exists in the repository.'],
+     ['Host beside environment', 'A remote host and an environment reference in one script. Links can live in a Markdown file.'],
     ['Self-check', 'The gate is held to its own rules, comments and documents included.']
   ];
   var grid = document.getElementById('rule-grid');

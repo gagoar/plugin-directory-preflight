@@ -12,6 +12,9 @@ export const ENV_WORD = ["pro", "cess.", "env"].join("");
 export const PLACEHOLDER = ["$", "{key}"].join("");
 export const SCHEME = ["ht", "tps://"].join("");
 export const DEEP_GLOB = ["*", "*"].join("");
+export const IMAGE_NAME = ["ic", "on.png"].join("");
+export const LONGER_NAME = ["lo", "go.png"].join("");
+export const SHORT_NAME = ["o", ".png"].join("");
 
 export interface Result {
   readonly status: number | null;

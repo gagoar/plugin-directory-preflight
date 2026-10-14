@@ -37,8 +37,14 @@ These cost the most rounds last time. Each was a fix that created the next hold:
 - Never write a flagged shape into a comment, a document, a commit or a PR description. Describe it
   ("a command word on its own in a call") and point to the gate script's word list.
 - Run the gate on the gate. Do not exempt the checker from its own rules.
-- Do not put a remote URL (a badge, a tester link) in a file that also mentions the environment or a
-  credential. Move one of them.
+- Do not put a remote URL (a badge, a tester link) in a script that also mentions the environment or a
+  credential. Move one of them. A Markdown file is a safe home for links.
+- Do not join plain English words with pipes in source when one of them is a command word (the grammar word
+  `set` is one). Build the list from an array.
+- Test files and comments are read like shipped code. Describe a flagged shape in words there too.
+- A test example that names an image file the repository holds is held. Use a name no file has.
+- A conflict with another plugin's rule (the TypeScript enforcer wants a link above every regex) is settled in
+  `references/scanner-rules.md`, section "Known conflicts".
 - After adding a document or script, run the gate again before committing.
 
 ## 3. After the upload
@@ -58,6 +64,13 @@ before it. Then:
 - **Only false positives remain** and there is nothing left to rewrite: a hold goes to a human reviewer and is
   not a rejection. Draft a short note for the portal's "Get help" action: what the plugin does, that the
   match is a keyword or a parser word, and which file.
+
+## 3a. Staging a try
+
+The scan follows the default branch only, so each try on the real repository is a merge. Before the second
+upload, ask the user, then push the working tree to a throwaway public repository and upload that one instead:
+`git push <scratch-url> HEAD:main`. Merge to the real repository only when the report shows no hold. Delete the
+scratch repository afterwards.
 
 ## 4. Pinning a hold the gate cannot explain
 

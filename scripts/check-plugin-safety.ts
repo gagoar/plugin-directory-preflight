@@ -9,7 +9,8 @@
 //   6. a shell command word that prints the environment sits on its own in a call or condition
 //   7. a template placeholder names a credential (key, token, secret, ...)
 //   8. a glob in a document covers an image or a font (the scanner reads the document as naming it)
-//   9. a remote host and an environment reference sit in the same file (the scanner pairs them)
+//   9. a remote host and an environment reference sit in the same script (the scanner pairs them)
+//  10. a script names an image or a font that exists in the repository (the scanner reads that as pointing at it)
 // Usage: node scripts/check-plugin-safety.ts [plugin-root ...]   (default: .)
 import { closeSync, existsSync, openSync, readdirSync, readFileSync, readSync, statSync } from "node:fs";
 import type { Dirent } from "node:fs";
@@ -93,7 +94,8 @@ function grantProblem(tool: string): string | undefined {
 // ---- rule 2: whole-environment forwarding -----------------------------------
 
 // Reading one named variable (process.env.COLUMNS) is fine. Copying or listing
-// the whole environment hands every secret in it to the code.
+// the whole environment hands every secret in it to the code. Test files and comments are read too:
+// the scanner held a plugin for a spread written in a test comment.
 const ENV_PATTERNS: readonly { readonly re: RegExp; readonly why: string }[] = [
   { re: /\.\.\.\s*process\.env\b(?!\s*\.|\s*\[)/, why: "spreads the whole environment" },
   { re: /Object\.(?:keys|entries|values)\(\s*process\.env\s*\)/, why: "enumerates the whole environment" },
@@ -101,11 +103,10 @@ const ENV_PATTERNS: readonly { readonly re: RegExp; readonly why: string }[] = [
   { re: /\benv\s*:\s*process\.env\s*[,}\n]/, why: "passes the whole environment to a child process" },
 ];
 const CODE_EXTS: ReadonlySet<string> = new Set([".ts", ".tsx", ".js", ".mjs", ".cjs", ".mts", ".cts"]);
-const TEST_FILE = /(?:\.test|\.spec)\.[cm]?[jt]sx?$/;
 const NODE_SHEBANG = /^#!.*\bnode\b/;
 
 function isShippedCode(path: string, head: string): boolean {
-  if (basename(path) === SELF || TEST_FILE.test(path)) return false;
+  if (basename(path) === SELF) return false;
   const ext = extname(path).toLowerCase();
   return CODE_EXTS.has(ext) || (ext === "" && NODE_SHEBANG.test(head));
 }
@@ -122,16 +123,17 @@ function envProblems(path: string): readonly string[] {
 
 // ---- rules 6 and 7: shapes the scanner reads as a credential lookup ----------
 
-// The scanner splits a line on parentheses, braces and the shell's separators, and reads a segment that
-// is one command word as that command run with no arguments. A bare declare, set or export prints
+// The scanner splits a line on parentheses, braces and the shell's separators (a single pipe included), and
+// reads a segment that is one command word as that command run with no arguments. A list of plain English
+// words joined with pipes can trip it, because one of the words is a command word. A bare declare, set or export prints
 // the whole environment, so a call or a condition holding just such a word is held as a read of the
 // installer's environment, whether it sits in code, in a comment or in a document.
 // The two names that only dump the environment are joined from halves, so this file does not list them.
 const ENV_DUMPERS: readonly string[] = [["en", "v"].join(""), ["print", "env"].join("")];
 const COMMAND_WORDS: readonly string[] = ["declare", "export", "set", "typeset", "unset", ...ENV_DUMPERS];
-// Matches a segment that is one command word, right after "(" or "{" or at a statement start; rejects a word given arguments or part of a longer name.
+// Matches a segment that is one command word, right after "(", "{", "|" or at a statement start; rejects a word given arguments or part of a longer name.
 const LONE_COMMAND_RE = new RegExp(
-  `(?:[({]|^|;|&&|\\|\\|)\\s*["'\`]?(?:${COMMAND_WORDS.join("|")})["'\`]?\\s*(?:[)}]|&&|\\|\\||;|$)`,
+  `(?:[({|]|^|;|&&|\\|\\|)\\s*["'\`]?(?:${COMMAND_WORDS.join("|")})["'\`]?\\s*(?:[)}|]|&&|\\|\\||;|$)`,
 );
 
 // A template placeholder whose expression names a credential reads as a credential lookup, however
@@ -211,17 +213,38 @@ function imageGlobProblems(path: string, mediaPaths: readonly string[]): readonl
     );
 }
 
-// Rule 9. A remote host and an environment reference in one file are held as a credential that can leave
+// Rule 10. A script that names an image or a font that exists in the repository is read as pointing at it.
+// The scanner lets the image through unread, then holds the script. Documents and pages naming an image are
+// not held, so only scripts are checked.
+const SCRIPT_EXTS: ReadonlySet<string> = new Set([...CODE_EXTS, ".sh", ".py"]);
+// A character that has a meaning inside a regex. Matches the dot in "logo.png"; rejects the letter "l".
+const REGEX_SPECIALS = /[.*+?^${}()|[\]\\]/g;
+// A file name that stands on its own. Matches "logo.png" in "see logo.png"; rejects "o.png" inside "logo.png".
+const nameRe = (name: string): RegExp => new RegExp(`(?<![\\w.-])${name.replace(REGEX_SPECIALS, "\\$&")}`);
+
+function mediaNameProblems(path: string, mediaPaths: readonly string[]): readonly string[] {
+  if (!SCRIPT_EXTS.has(extname(path).toLowerCase())) return [];
+  const text = readableText(path);
+  const names = [...new Set(mediaPaths.map((media) => basename(media)))].filter((name) => nameRe(name).test(text));
+  return names.length
+    ? [`names the image or font ${names.join(", ")}; the scanner reads a script that names one as pointing at a file it let through unread. Use a name that no file in the repository has`]
+    : [];
+}
+
+// Rule 9. A remote host and an environment reference in one script are held as a credential that can leave
 // the machine, however unrelated they are.
 const ENV_REFERENCES: readonly string[] = ["process.env", "os.environ", "getenv(", "Deno.env"];
 // Matches a URL with a host; rejects a bare scheme such as "https://" and the escaped text of this pattern.
 const HOST_RE = /https?:\/\/[A-Za-z0-9.-]+\.[a-z]{2,}/;
 
-function hostPairingProblems(text: string): readonly string[] {
+// Only scripts pair: a Markdown file with a tester link and an environment word passed the scan, so the
+// links can live in a document.
+function hostPairingProblems(path: string, text: string): readonly string[] {
+  if (!SCRIPT_EXTS.has(extname(path).toLowerCase())) return [];
   const host = HOST_RE.exec(text)?.[0];
   const reference = ENV_REFERENCES.find((candidate) => text.includes(candidate));
   return host !== undefined && reference !== undefined
-    ? [`has the remote host ${host} and the environment reference ${reference} in the same file; the scanner pairs them as a credential that can leave the machine`]
+    ? [`has the remote host ${host} and the environment reference ${reference} in the same script; the scanner pairs them as a credential that can leave the machine. Move the link into a Markdown document`]
     : [];
 }
 
@@ -231,7 +254,8 @@ function scannerShapeProblems(root: string, path: string, mediaPaths: readonly s
     ...lineProblems(path, LONE_COMMAND_RE, "has a command word on its own, which the scanner reads as a command that prints the environment"),
     ...lineProblems(path, LOOKUP_PLACEHOLDER_RE, "has a template placeholder that names a credential, which the scanner reads as a credential lookup"),
     ...imageGlobProblems(path, mediaPaths),
-    ...hostPairingProblems(readableText(path)),
+    ...mediaNameProblems(path, mediaPaths),
+    ...hostPairingProblems(path, readableText(path)),
   ];
 }
 
