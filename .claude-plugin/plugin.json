@@ -1,7 +1,7 @@
 {
   "name": "plugin-directory-preflight",
   "displayName": "Plugin Directory Preflight",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Check a Claude Code plugin against what the plugin directory's upload scan holds plugins for, before you upload it.",
   "author": {
     "name": "gagoar",

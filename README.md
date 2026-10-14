@@ -45,14 +45,15 @@ All are plain Node (22.6 or later), no dependencies. Run them as `node scripts/<
 The gate fails on things the upload scan holds plugins for review over:
 
 - A skill, agent or command that pre-approves writing, editing or running commands with no path scope.
-- Shipped code that copies the whole environment.
+- Code, test files and comments that copy the whole environment.
 - A committed native executable.
 - A script or document of 256 KiB or more.
-- A shell command that prints the environment, alone in a call or a condition, in code, a comment or a
-  document. The gate script has the word list.
+- A shell command that prints the environment, alone in a call or a condition (after a parenthesis, a brace or a
+  pipe), in code, a comment or a document. The gate script has the word list.
 - A template placeholder whose expression names a credential.
 - A glob in a document that covers images or fonts.
-- A remote host and an environment reference in the same file.
+- A script that names an image or a font that exists in the repository.
+- A remote host and an environment reference in the same script. A Markdown file may hold the link.
 
 `skills/check/references/scanner-rules.md` explains each one and how the scan moves from file to file.
 
