@@ -5,8 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Plugin Directory Preflight: know what the directory scan will hold</title>
 <meta name="description" content="A Claude Code plugin that runs the plugin directory's upload checks locally, reads the scan report in a screenful, and pins a stubborn hold in about three uploads.">
+<meta name="theme-color" content="#101418">
 <link rel="canonical" href="https://gagoar.github.io/plugin-directory-preflight/">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="preload" href="assets/fonts/barlow-condensed-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/pf.css">
+<style>@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }</style>
 <meta property="og:type" content="website">
 <meta property="og:title" content="Plugin Directory Preflight: know what the directory scan will hold, before you upload">
 <meta property="og:description" content="A Claude Code plugin that runs the plugin directory's upload checks locally, reads the scan report in a screenful, and pins a stubborn hold in about three uploads.">
@@ -16,256 +20,159 @@
 <meta name="twitter:title" content="Plugin Directory Preflight: know what the directory scan will hold, before you upload">
 <meta name="twitter:description" content="A Claude Code plugin that runs the plugin directory's upload checks locally, reads the scan report in a screenful, and pins a stubborn hold in about three uploads.">
 <meta name="twitter:image" content="https://gagoar.github.io/plugin-directory-preflight/assets/og.png">
-<style>
-:root {
-  --ivory:#FAF9F5; --slate:#141413; --clay:#D97757; --clay-d:#B85C3E; --oat:#E3DACC;
-  --olive:#788C5D; --rust:#B04A3F; --gray-150:#F0EEE6; --gray-300:#D1CFC5; --gray-500:#87867F;
-  --gray-700:#3D3D3A; --white:#FFFFFF;
-  --serif: ui-serif, Georgia, "Times New Roman", serif;
-  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  --border: 1.5px solid var(--gray-300);
-}
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
-body { font-family: var(--sans); background: var(--ivory); color: var(--gray-700); font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
-.wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
-a { color: var(--clay-d); }
-code { font-family: var(--mono); font-size: 0.9em; background: var(--gray-150); padding: 1px 6px; border-radius: 4px; color: var(--slate); }
-h1, h2, h3 { font-family: var(--serif); font-weight: 500; color: var(--slate); letter-spacing: -0.01em; }
-h2 { font-size: 30px; line-height: 1.2; margin-bottom: 12px; }
-.eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--clay); margin-bottom: 12px; }
-section { padding: 64px 0; }
-.lead { font-size: 18px; max-width: 640px; margin-bottom: 28px; }
-
-nav.top { display: flex; justify-content: space-between; align-items: center; padding: 24px 0; }
-nav.top .brand { font-family: var(--serif); font-size: 22px; color: var(--slate); text-decoration: none; display: flex; align-items: center; gap: 10px; }
-nav.top .brand img { width: 28px; height: 28px; }
-nav.top .links { display: flex; gap: 22px; font-size: 14px; }
-nav.top .links a { color: var(--gray-700); text-decoration: none; }
-nav.top .links a:hover { color: var(--clay-d); }
-
-.hero { padding: 56px 0 72px; }
-.hero h1 { font-size: clamp(38px, 6vw, 64px); line-height: 1.05; margin-bottom: 20px; max-width: 760px; }
-.hero h1 em { color: var(--clay); font-style: italic; }
-.hero .lead { color: var(--gray-700); }
-
-.install { background: var(--slate); border-radius: 12px; padding: 18px 22px; position: relative; max-width: 680px; margin-bottom: 20px; }
-.install pre { font-family: var(--mono); font-size: 13px; line-height: 1.8; color: #E8E6DE; overflow-x: auto; padding-right: 76px; }
-.install .c { color: var(--clay); } .install .a { color: #9BB07C; }
-.copy { position: absolute; top: 12px; right: 12px; font-family: var(--mono); font-size: 12px; background: #2a2a28; color: #E8E6DE; border: 1px solid #4a4a46; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
-.copy:hover { background: #3a3a37; }
-.btns { display: flex; gap: 12px; flex-wrap: wrap; }
-.btn { display: inline-block; padding: 10px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; text-decoration: none; border: var(--border); color: var(--slate); background: var(--white); }
-.btn.primary { background: var(--clay); border-color: var(--clay); color: var(--white); }
-.btn:hover { border-color: var(--clay); }
-
-.demo { background: var(--white); border: var(--border); border-radius: 14px; padding: 26px; }
-.toggle { display: inline-flex; border: var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
-.toggle button { font-family: var(--mono); font-size: 13px; padding: 9px 18px; border: 0; background: var(--white); color: var(--gray-700); cursor: pointer; }
-.toggle button[aria-pressed="true"] { background: var(--slate); color: var(--white); }
-.demo-meta { display: flex; align-items: center; gap: 12px; font-family: var(--mono); font-size: 13px; color: var(--gray-500); margin-bottom: 14px; }
-.badge { min-width: 34px; height: 34px; padding: 0 10px; font-size: 15px !important; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-family: var(--serif); font-size: 21px; }
-.badge.d { background: rgba(176,74,63,0.14); color: var(--rust); }
-.badge.a { background: rgba(120,140,93,0.18); color: var(--olive); }
-.sample { font-family: var(--mono); font-size: 14.5px; line-height: 1.7; color: var(--slate); background: var(--gray-150); border-radius: 10px; padding: 16px 18px; min-height: 150px; white-space: pre-wrap; overflow-x: auto; }
-.sample mark { background: rgba(176,74,63,0.16); color: #8a3228; border-radius: 4px; padding: 0 3px; }
-.demo-note { margin-top: 14px; font-size: 14px; color: var(--gray-500); }
-
-.report { background: var(--slate); border-radius: 12px; padding: 20px 24px; overflow-x: auto; }
-.report pre { font-family: var(--mono); font-size: 12.5px; line-height: 1.7; color: #E8E6DE; }
-.report .k { color: var(--clay); } .report .g { color: #9BB07C; } .report .d { color: #8a8880; }
-.two > * { min-width: 0; }
-.two { display: grid; grid-template-columns: 1fr 1.2fr; gap: 36px; align-items: center; }
-@media (max-width: 760px) { .two { grid-template-columns: 1fr; gap: 24px; } section { padding: 44px 0; } nav.top .links a:not(:last-child) { display: none; } }
-
-.rules { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 12px; margin-top: 24px; }
-.rule { background: var(--white); border: var(--border); border-radius: 10px; padding: 14px 16px; }
-.rule .n { font-family: var(--mono); font-size: 11px; color: var(--gray-500); }
-.rule .t { font-family: var(--serif); font-size: 17px; color: var(--slate); margin: 2px 0 4px; }
-.rule .e { font-size: 13px; color: var(--gray-700); line-height: 1.45; }
-
-.proof { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-@media (max-width: 760px) { .proof { grid-template-columns: 1fr; } }
-.stat { background: var(--white); border: var(--border); border-radius: 12px; padding: 20px 22px; }
-.stat .big { font-family: var(--serif); font-size: 34px; color: var(--slate); line-height: 1.1; }
-.stat p { font-size: 14px; margin-top: 6px; }
-
-.cta { text-align: center; background: var(--oat); border-radius: 16px; padding: 48px 24px; }
-.cta .install { margin: 20px auto; text-align: left; }
-footer { border-top: var(--border); padding: 28px 0 48px; margin-top: 56px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--gray-500); }
-footer a { color: var(--gray-500); margin-right: 18px; text-decoration: none; }
-footer a:hover { color: var(--slate); }
-.chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:22px; } .chip { font-family: var(--mono); font-size: 12.5px; background: var(--white); border: var(--border); border-radius: 999px; padding: 4px 12px; color: var(--gray-700); }
-.cards { display:grid; grid-template-columns: repeat(3,1fr); gap:14px; margin-top:22px; } @media (max-width:760px){ .cards{grid-template-columns:1fr;} }
-.card { background: var(--white); border: var(--border); border-radius: 12px; padding: 20px 22px; } .card h3 { font-size: 19px; margin-bottom: 6px; } .card p { font-size: 14px; }
-</style>
 </head>
 <body>
-<div class="wrap">
-  <nav class="top">
-    <a class="brand" href="./"><img src="assets/favicon.svg" alt="">Plugin Directory Preflight</a>
-    <div class="links">
+<a class="pf-skip" href="#main">Skip to content</a>
+<div class="pf-wrap">
+  <nav class="pf-nav" aria-label="Site">
+    <a class="pf-brand" href="./"><img src="assets/favicon.svg" alt="">Plugin Directory Preflight</a>
+    <div class="pf-links">
       <a href="./#demo">Demo</a>
       <a href="./#probe">Probe</a>
+      <a href="./#rules">Gate</a>
       <a href="guide.html">Guide</a>
       <a href="https://github.com/gagoar/plugin-directory-preflight">GitHub</a>
     </div>
   </nav>
 
-  <header class="hero">
-    <div class="eyebrow">Claude Code plugin</div>
-    <h1>Know what the directory scan will hold, <em>before you upload.</em></h1>
-    <p class="lead">A skill and four small scripts. They run the upload checks on your machine, read the scan report in a screenful, and find a stubborn hold in about three uploads instead of guessing.</p>
-    <div class="install">
-      <button class="copy" type="button" data-copy="install">Copy</button>
-<pre><span class="c">/plugin marketplace add</span> <span class="a">gagoar/plugin-directory-preflight</span>
-<span class="c">/plugin install</span> <span class="a">plugin-directory-preflight@plugin-directory-preflight</span>
-<span class="c">/reload-plugins</span></pre>
+  <main id="main">
+  <header class="pf-hero">
+    <div>
+      <p class="pf-label"><span class="pf-lamp" aria-hidden="true"></span>Claude Code plugin</p>
+      <h1>Know what the directory scan will hold, <span>before you upload.</span></h1>
+      <p class="pf-lead">A skill and four small scripts. They run the upload checks on your machine, read the scan report in a screenful, and find a stubborn hold in about three uploads instead of guessing.</p>
     </div>
-    <div class="btns">
-      <a class="btn primary" href="https://github.com/gagoar/plugin-directory-preflight">View on GitHub</a>
-      <a class="btn" href="guide.html">Read the guide</a>
+    <div class="pf-side">
+      <div class="pf-install">
+  <span class="pf-tag">Install</span>
+  <button class="pf-copy" type="button">Copy</button>
+<pre><span class="pf-c">/plugin marketplace add</span> <span class="pf-a">gagoar/plugin-directory-preflight</span>
+<span class="pf-c">/plugin install</span> <span class="pf-a">plugin-directory-preflight@plugin-directory-preflight</span>
+<span class="pf-c">/reload-plugins</span></pre>
+</div>
+      <div class="pf-btns">
+        <a class="pf-btn pf-go" href="https://github.com/gagoar/plugin-directory-preflight">View on GitHub</a>
+        <a class="pf-btn" href="guide.html">Read the guide</a>
+      </div>
     </div>
   </header>
 
-  <section id="demo" style="padding-top:0">
-    <div class="eyebrow">See it work</div>
+  <div class="pf-runway" aria-hidden="true"></div>
+  <section class="pf-sec" id="demo">
+    <p class="pf-label">See it work</p>
     <h2>Run the gate. Fix everything it names. Upload once.</h2>
-    <p class="lead">The scan names one match per upload. The gate names every match in the repository at once.</p>
-    <div class="demo">
-      <div class="toggle" role="group" aria-label="Before or after">
-        <button type="button" id="btn-before" aria-pressed="true">Before the fix</button>
-        <button type="button" id="btn-after" aria-pressed="false">After the fix</button>
+    <p class="pf-lead">The scan names one match per upload. The gate names every match in the repository at once.</p>
+    <div class="pf-readout" role="group" aria-label="Gate run, before and after the fix">
+      <header><span>Gate run</span><span>node scripts/check-plugin-safety.ts .</span></header>
+      <div class="pf-gauges">
+        <div class="pf-gauge"><h3><span class="pf-lamp" aria-hidden="true"></span>Before the fix</h3><div class="pf-num">3</div><div class="pf-unit">problems</div></div>
+        <div class="pf-gauge pf-clear"><h3><span class="pf-lamp pf-ok" aria-hidden="true"></span>After the fix</h3><div class="pf-num">0</div><div class="pf-unit">problems</div></div>
       </div>
-      <div class="demo-meta"><span class="badge d" id="badge">3 problems</span><span>node scripts/check-plugin-safety.ts .</span></div>
-      <pre class="sample" id="sample"></pre>
-      <p class="demo-note" id="note"></p>
+      <div class="pf-log">
+        <p><b>FAIL</b> scripts/status.mjs: line 55 has a template placeholder that names a credential, which the scanner reads as a credential lookup</p>
+        <p><b>FAIL</b> README.md: line 152 has the glob ./docs/<span>**</span>, which covers 32 image or font file(s)</p>
+        <p><b>FAIL</b> notes.js: line 3 has a command word on its own, which the scanner reads as a command that prints the environment</p>
+        <p><b>3 problem(s)</b> in 41 files</p>
+        <p class="pf-ok"><b>checked 41 files, 0 problem(s)</b></p>
+        <p class="pf-note">Renamed the placeholder, narrowed the glob, reworded the call. One upload instead of three. Each of these is something the scan held a real plugin for. Without the gate it names one per upload.</p>
+      </div>
     </div>
   </section>
 
-  <section>
-    <div class="eyebrow">Why this exists</div>
+  <section class="pf-sec">
+    <p class="pf-label">Why this exists</p>
     <h2>One plugin took seventeen releases to clear.</h2>
-    <p class="lead">The directory's upload scan cannot be run locally, and it reports only the first match in path order. Every fix revealed the next hold, and a fix in an earlier-sorting file could hide a later one.</p>
-    <div class="proof">
-      <div class="stat"><div class="big">17</div><p>Releases, one upload and one long report each, to clear a single plugin.</p></div>
-      <div class="stat"><div class="big">1</div><p>Match named per upload. Anything after it in path order stays hidden.</p></div>
-      <div class="stat"><div class="big">3</div><p>Uploads for the probe to pin a trigger to one line of a large file.</p></div>
+    <p class="pf-lead">The directory's upload scan cannot be run locally, and it reports only the first match in path order. Every fix revealed the next hold, and a fix in an earlier-sorting file could hide a later one.</p>
+    <div class="pf-stats">
+      <div class="pf-stat"><div class="pf-big">17</div><p>Releases, one upload and one long report each, to clear a single plugin.</p></div>
+      <div class="pf-stat"><div class="pf-big">1</div><p>Match named per upload. Anything after it in path order stays hidden.</p></div>
+      <div class="pf-stat"><div class="pf-big">3</div><p>Uploads for the probe to pin a trigger to one line of a large file.</p></div>
     </div>
   </section>
 
-  <section id="parts" style="padding-top:0">
-    <div class="eyebrow">What you get</div>
+  <div class="pf-runway" aria-hidden="true"></div>
+  <section class="pf-sec" id="parts">
+    <p class="pf-label">What you get</p>
     <h2>Four scripts and one skill.</h2>
-    <div class="cards" style="grid-template-columns:repeat(2,1fr)">
-      <div class="card"><h3>The gate</h3><p>Ten checks for what the scan held a plugin for: unscoped grants, big files, committed binaries, command words, credential-named placeholders, image names and globs and more. Runs in CI.</p></div>
-      <div class="card"><h3>The installer</h3><p>Copies the gate and a CI workflow into any plugin repo, including a <code>plugin/</code> subdirectory. <code>--check</code> reports drift.</p></div>
-      <div class="card"><h3>The report reader</h3><p>Turns a 40k-token scan report into a screenful: the findings, the file named, and the files that sort before it and could be masking the next match.</p></div>
-      <div class="card"><h3>The probe</h3><p>Cuts a file into slices that sort in line order, so each upload halves the search. About three uploads reach a single line.</p></div>
-    </div>
+    <ol class="pf-parts">
+      <li><h3>The gate</h3><p>Ten checks for what the scan held a plugin for: unscoped grants, big files, committed binaries, command words, credential-named placeholders, image names and globs and more. Runs in CI.</p></li>
+      <li><h3>The installer</h3><p>Copies the gate and a CI workflow into any plugin repo, including a <code>plugin/</code> subdirectory. <code>--check</code> reports drift.</p></li>
+      <li><h3>The report reader</h3><p>Turns a 40k-token scan report into a screenful: the findings, the file named, and the files that sort before it and could be masking the next match.</p></li>
+      <li><h3>The probe</h3><p>Cuts a file into slices that sort in line order, so each upload halves the search. About three uploads reach a single line.</p></li>
+    </ol>
   </section>
 
-  <section id="probe" style="padding-top:0">
-    <div class="two">
+  <section class="pf-sec" id="probe">
+    <div class="pf-two">
       <div>
-        <div class="eyebrow">When the gate cannot explain a hold</div>
+        <p class="pf-label">When the gate cannot explain a hold</p>
         <h2>Bisect it, don't guess.</h2>
-        <p class="lead" style="margin-bottom:0">The scan names the first matching file. Cut the suspect file into small files named in line order and upload that. The file it names is the slice; cut that slice again.</p>
+        <p class="pf-lead" style="margin-bottom:0">The scan names the first matching file. Cut the suspect file into small files named in line order and upload that. The file it names is the slice; cut that slice again.</p>
       </div>
-      <div class="report">
-<pre><span class="d"># round 1: 16 slices of the file</span>
-<span class="k">credential_at</span>  probe/s1-11.js
-<span class="d"># round 2: cut that slice (75 lines)</span>
-<span class="k">credential_at</span>  probe/s2-06.js
-<span class="d"># round 3: windows of 1..N lines</span>
-<span class="k">credential_at</span>  probe/w01-02.js
-<span class="g">explain</span>  line 777 of the original file</pre>
+      <div class="pf-term" role="img" aria-label="Three probe rounds narrowing a hold to line 777 of the original file">
+<pre><span class="pf-d"># round 1: 16 slices of the file</span>
+<span class="pf-k">credential_at</span>  probe/s1-11.js
+<span class="pf-d"># round 2: cut that slice (75 lines)</span>
+<span class="pf-k">credential_at</span>  probe/s2-06.js
+<span class="pf-d"># round 3: windows of 1..N lines</span>
+<span class="pf-k">credential_at</span>  probe/w01-02.js
+<span class="pf-g">explain</span>  line 777 of the original file</pre>
       </div>
     </div>
   </section>
 
-  <section id="rules" style="padding-top:0">
-    <div class="eyebrow">The gate</div>
+  <div class="pf-runway" aria-hidden="true"></div>
+  <section class="pf-sec" id="rules">
+    <p class="pf-label">The gate</p>
     <h2>Ten checks, each from a real hold.</h2>
-    <div class="rules" id="rule-grid"></div>
+    <p class="pf-legend"><span><i class="pf-lamp" aria-hidden="true"></i>What the scan holds a plugin for</span><span><i class="pf-lamp pf-ok" aria-hidden="true"></i>What a clean gate run clears</span></p>
+    <ol class="pf-checks">
+      <li><span class="pf-lamp" aria-hidden="true"></span><span class="pf-n">Check</span><span class="pf-t">Unscoped grants</span><span class="pf-e">A skill, agent or command that pre-approves writing, editing or running commands with no path scope.</span></li>
+      <li><span class="pf-lamp" aria-hidden="true"></span><span class="pf-n">Check</span><span class="pf-t">Whole-environment copies</span><span class="pf-e">Code, test files and comments that copy every variable instead of naming the ones they need.</span></li>
+      <li><span class="pf-lamp" aria-hidden="true"></span><span class="pf-n">Check</span><span class="pf-t">Committed binaries</span><span class="pf-e">A native executable the scan cannot read.</span></li>
+      <li><span class="pf-lamp" aria-hidden="true"></span><span class="pf-n">Check</span><span class="pf-t">Files over 5 MiB</span><span class="pf-e">The plugin directory rejects any file over 5 MiB.</span></li>
+      <li><span class="pf-lamp" aria-hidden="true"></span><span class="pf-n">Check</span><span class="pf-t">Scripts and documents of 256 KiB</span><span class="pf-e">The scan reads a script or document only up to 256 KiB, then holds the plugin.</span></li>
+      <li><span class="pf-lamp" aria-hidden="true"></span><span class="pf-n">Check</span><span class="pf-t">Command words alone</span><span class="pf-e">A shell command that prints the environment, alone in a call, a condition or a pipe-joined word list.</span></li>
+      <li><span class="pf-lamp" aria-hidden="true"></span><span class="pf-n">Check</span><span class="pf-t">Credential-named placeholders</span><span class="pf-e">A template placeholder whose expression names a key, token or secret.</span></li>
+      <li><span class="pf-lamp" aria-hidden="true"></span><span class="pf-n">Check</span><span class="pf-t">Image globs</span><span class="pf-e">A glob in a document that covers images or fonts the scan cannot read.</span></li>
+      <li><span class="pf-lamp" aria-hidden="true"></span><span class="pf-n">Check</span><span class="pf-t">Image names in scripts</span><span class="pf-e">A script that names an image or a font that exists in the repository.</span></li>
+      <li><span class="pf-lamp" aria-hidden="true"></span><span class="pf-n">Check</span><span class="pf-t">Host beside environment</span><span class="pf-e">A remote host and an environment reference in one script. Links can live in a Markdown file.</span></li>
+    </ol>
+    <p class="pf-foot-note">The gate is held to its own rules, comments and documents included, and a test runs it on this repository.</p>
   </section>
 
-  <section style="padding-top:0">
-    <div class="cta">
-      <h2>Install it in 10 seconds.</h2>
-      <div class="install">
-      <button class="copy" type="button" data-copy="install">Copy</button>
-<pre><span class="c">/plugin marketplace add</span> <span class="a">gagoar/plugin-directory-preflight</span>
-<span class="c">/plugin install</span> <span class="a">plugin-directory-preflight@plugin-directory-preflight</span>
-<span class="c">/reload-plugins</span></pre>
-    </div>
-      <div class="btns" style="justify-content:center">
-        <a class="btn primary" href="https://github.com/gagoar/plugin-directory-preflight">Star on GitHub</a>
-        <a class="btn" href="guide.html">Read the guide</a>
+  <section class="pf-sec">
+    <div class="pf-cta">
+      <div>
+        <div class="pf-lamps" aria-hidden="true"><span class="pf-lamp pf-ok"></span><span class="pf-lamp pf-ok"></span><span class="pf-lamp pf-ok"></span></div>
+        <h2>Install it in 10 seconds.</h2>
+        <div class="pf-btns">
+          <a class="pf-btn pf-go" href="https://github.com/gagoar/plugin-directory-preflight">Star on GitHub</a>
+          <a class="pf-btn" href="guide.html">Read the guide</a>
+        </div>
       </div>
+      <div class="pf-install">
+  <span class="pf-tag">Install</span>
+  <button class="pf-copy" type="button">Copy</button>
+<pre><span class="pf-c">/plugin marketplace add</span> <span class="pf-a">gagoar/plugin-directory-preflight</span>
+<span class="pf-c">/plugin install</span> <span class="pf-a">plugin-directory-preflight@plugin-directory-preflight</span>
+<span class="pf-c">/reload-plugins</span></pre>
+</div>
     </div>
   </section>
+  </main>
 
   <footer>
     <div><a href="https://github.com/gagoar/plugin-directory-preflight">GitHub</a><a href="https://github.com/gagoar/plugin-directory-preflight/releases">Releases</a><a href="guide.html">Guide</a><a href="https://github.com/gagoar/plugin-directory-preflight#privacy">Privacy</a><a href="https://github.com/gagoar/plugin-directory-preflight#terms">Terms</a></div>
-    <div>MIT · v0.2.0 · by <a href="https://github.com/gagoar" style="margin:0">gagoar</a></div>
+    <div>MIT · v0.2.1 · Fonts: Barlow Condensed, IBM Plex Mono (SIL OFL 1.1) · by <a href="https://github.com/gagoar" style="margin:0">gagoar</a></div>
   </footer>
 </div>
-
 <script>
 (function () {
-  var DIR = './docs/', STAR = ['*', '*'].join(''), PH = ['$', '{', 'name', '}'].join('');
-  var before = [
-    'FAIL scripts/status.mjs: line 55 has a template placeholder that names a credential, which the scanner reads as a credential lookup',
-    'FAIL README.md: line 152 has the glob ' + DIR + STAR + ', which covers 32 image or font file(s)',
-    'FAIL notes.js: line 3 has a command word on its own, which the scanner reads as a command that prints the environment',
-    '<mark>3 problem(s)</mark> in 41 files'
-  ].join('\n');
-  var after = 'checked 41 files, <mark>0 problem(s)</mark>';
-  var sample = document.getElementById('sample'), badge = document.getElementById('badge'),
-      note = document.getElementById('note'),
-      bB = document.getElementById('btn-before'), bA = document.getElementById('btn-after');
-  function show(isAfter) {
-    sample.innerHTML = isAfter ? after : before;
-    badge.textContent = isAfter ? 'clean' : '3 problems';
-    badge.className = 'badge ' + (isAfter ? 'a' : 'd');
-    note.textContent = isAfter
-      ? 'Renamed the placeholder, narrowed the glob, reworded the call. One upload instead of three.'
-      : 'Each of these is something the scan held a real plugin for. Without the gate it names one per upload.';
-    bB.setAttribute('aria-pressed', String(!isAfter));
-    bA.setAttribute('aria-pressed', String(isAfter));
-  }
-  bB.onclick = function () { show(false); };
-  bA.onclick = function () { show(true); };
-  show(false);
-
-  var rules = [
-    ['Unscoped grants', 'A skill, agent or command that pre-approves writing or running commands with no path.'],
-    ['Whole-environment reads', 'Code, test files and comments that copy every variable instead of naming the ones they need.'],
-    ['Committed binaries', 'A native executable the scan cannot read.'],
-    ['Big files', 'Any file over 5 MiB, or a script or document of 256 KiB or more.'],
-    ['Command words alone', 'A shell command that prints the environment, alone in a call, a condition or a pipe-joined word list.'],
-    ['Credential-named placeholders', 'A template placeholder whose expression names a key, token or secret.'],
-    ['Image globs', 'A glob in a document that covers images or fonts the scan cannot read.'],
-    ['Image names in scripts', 'A script that names an image or a font that exists in the repository.'],
-     ['Host beside environment', 'A remote host and an environment reference in one script. Links can live in a Markdown file.'],
-    ['Self-check', 'The gate is held to its own rules, comments and documents included.']
-  ];
-  var grid = document.getElementById('rule-grid');
-  rules.forEach(function (r, i) {
-    var d = document.createElement('div');
-    d.className = 'rule';
-    d.innerHTML = '<div class="n">Check ' + (i + 1) + '</div><div class="t"></div><div class="e"></div>';
-    d.querySelector('.t').textContent = r[0];
-    d.querySelector('.e').textContent = r[1];
-    grid.appendChild(d);
-  });
-
-  var cmd = '/plugin marketplace add gagoar/plugin-directory-preflight\n/plugin install plugin-directory-preflight@plugin-directory-preflight\n/reload-plugins';
-  document.querySelectorAll('.copy').forEach(function (b) {
+  document.querySelectorAll('.pf-copy').forEach(function (b) {
     b.onclick = function () {
-      navigator.clipboard.writeText(cmd).then(function () {
+      var text = b.parentNode.querySelector('pre').textContent;
+      navigator.clipboard.writeText(text).then(function () {
         b.textContent = 'Copied';
         setTimeout(function () { b.textContent = 'Copy'; }, 1500);
       });
