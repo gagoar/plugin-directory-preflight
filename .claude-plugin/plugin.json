@@ -1,14 +1,14 @@
 {
   "name": "plugin-directory-preflight",
   "displayName": "Plugin Directory Preflight",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Check a Claude Code plugin against what the plugin directory's upload scan holds plugins for, before you upload it.",
   "author": {
     "name": "gagoar",
     "url": "https://github.com/gagoar"
   },
-  "homepage": "https://github.com/gagoar/plugin-directory-preflight",
-  "documentationUrl": "https://github.com/gagoar/plugin-directory-preflight#readme",
+  "homepage": "https://gagoar.github.io/plugin-directory-preflight/",
+  "documentationUrl": "https://gagoar.github.io/plugin-directory-preflight/guide.html",
   "supportUrl": "https://github.com/gagoar/plugin-directory-preflight/issues",
   "privacyPolicyUrl": "https://github.com/gagoar/plugin-directory-preflight#privacy",
   "termsOfServiceUrl": "https://github.com/gagoar/plugin-directory-preflight#terms",

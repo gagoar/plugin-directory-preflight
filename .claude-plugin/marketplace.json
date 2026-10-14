@@ -7,16 +7,16 @@
   },
   "metadata": {
     "description": "Check a Claude Code plugin against what the plugin directory's upload scan holds plugins for, before you upload it.",
-    "version": "0.2.0"
+    "version": "0.2.1"
   },
   "plugins": [
     {
       "name": "plugin-directory-preflight",
       "source": "./",
       "description": "Check a Claude Code plugin against what the plugin directory's upload scan holds plugins for, before you upload it.",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "author": { "name": "gagoar", "url": "https://github.com/gagoar" },
-      "homepage": "https://github.com/gagoar/plugin-directory-preflight",
+      "homepage": "https://gagoar.github.io/plugin-directory-preflight/",
       "license": "MIT",
       "keywords": ["plugin-directory", "preflight", "upload-scan", "release", "lint"],
       "category": "productivity"
