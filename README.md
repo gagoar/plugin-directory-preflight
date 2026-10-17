@@ -54,6 +54,9 @@ The gate fails on things the upload scan holds plugins for review over:
 - A glob in a document that covers images or fonts.
 - A script that names an image or a font that exists in the repository.
 - A remote host and an environment reference in the same script. A Markdown file may hold the link.
+- A manifest with no listing icon the directory can find: `icon` must name a square PNG or JPEG, 512 to 2048 px,
+  up to 10 MiB, inside the plugin and outside `.claude-plugin/`. This is not a scan hold. The listing shows a letter
+  instead. `--no-icon` skips the check for a throwaway plugin.
 
 `skills/check/references/scanner-rules.md` explains each one and how the scan moves from file to file.
 

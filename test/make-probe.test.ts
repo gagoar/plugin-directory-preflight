@@ -2,12 +2,14 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { COMMAND_WORD, run, tree } from "./helpers.ts";
 
+// The probe is never listed, so the gate stands in for the scan alone: no listing icon rule.
+const NO_ICON = "--no-icon";
 const LINES = 1200;
 const TRIGGER_LINE = 777;
 
 // Stands in for the directory scan: the gate's first failing file in path order.
 const firstFailing = (dir: string): string => {
-  const failing = run("check-plugin-safety.ts", [dir]).out.split("\n").filter((line) => line.startsWith("FAIL "));
+  const failing = run("check-plugin-safety.ts", [NO_ICON, dir]).out.split("\n").filter((line) => line.startsWith("FAIL "));
   return failing.map((line) => line.slice("FAIL ".length).split(":")[0] ?? "").sort()[0] ?? "";
 };
 
@@ -37,6 +39,6 @@ test("make-probe: the probe is a valid plugin skeleton with a send target and a 
   const dir = tree({ "src.js": "a\nb\nc\n" });
   const out = `${dir}/p`;
   run("make-probe.ts", ["round1", `${dir}/src.js`, out, "3"]);
-  const manifest = run("check-plugin-safety.ts", [out]);
+  const manifest = run("check-plugin-safety.ts", [NO_ICON, out]);
   assert.equal(manifest.status, 0, manifest.out);
 });

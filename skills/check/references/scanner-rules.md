@@ -50,6 +50,23 @@ Also not a hold: a warning that a document has a download-and-execute pattern (`
 does not name the line. Two rewrites of a testing document (removing the word fetch, then an install command) did
 not clear it. When it is the only finding left, stop: the plugin is not held.
 
+## The listing icon (not a scan hold)
+
+The directory reads the `icon` field of `plugin.json` for the listing icon. Rule 11 of the gate checks it, because a
+missing or misplaced icon is not a hold: the listing shows the first letter of the plugin name instead.
+
+| What fails | Why | Fix |
+|---|---|---|
+| No `icon` field | the directory has no image to read | add `"icon": "./icon.png"` |
+| The image is inside `.claude-plugin/` | that folder holds manifests only; the listing did not find an image there | move it to the plugin root, then point `icon` at it |
+| The path does not start with `./`, leaves the plugin, or names a missing file | the field is a path inside the plugin | use a path such as `./icon.png` |
+| The file is not a PNG or a JPEG, or does not parse as one | the listing takes those two formats | export a PNG |
+| The image is not square, or is not 512 to 2048 px on each side | the listing crops and scales a square | export a square image in range |
+| The file is over 10 MiB | the listing takes up to 10 MiB | shrink it |
+
+The portal also has a manual icon upload. It goes through review, and a version of the plugin must be published before
+the icon in the manifest shows. Raise `version` so the directory publishes the new image.
+
 ## Known conflicts with other plugins
 
 - `typescript-patterns-enforcer` asks for a regex tester link in the comment above every regex. The scan holds a

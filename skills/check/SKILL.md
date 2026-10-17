@@ -21,6 +21,10 @@ Scripts live in `${CLAUDE_PLUGIN_ROOT}/scripts/`. Run them with `node` (Node 22.
    unless `--force`). Commit the gate as its own change.
 3. Run the gate over the whole repo, comments, documents and generated files included:
    `node scripts/check-plugin-safety.ts .`
+   The gate also checks the listing icon. `plugin.json` must set `icon` to a PNG or JPEG file inside the plugin,
+   written `./icon.png` and kept at the plugin root, never in `.claude-plugin/`. The image must be square,
+   512 to 2048 px on each side, and up to 10 MiB. The directory reads that field for the listing. Without it, the
+   listing shows the first letter of the plugin name. A manifest folder holds manifests only.
 4. Run `claude plugin validate <plugin-root> --strict` (also on the manifest files).
 5. Fix **every** hit in one pass, then run steps 3 and 4 again. Do not stop at the first hit: the scan reveals
    them one at a time, and each extra round is an upload.
@@ -87,6 +91,7 @@ The finding names a file (`credential_at`). If it is a large file, cut it up:
 6. Fix every instance of that shape in the real plugin, upload the real plugin, then delete the probe repo
    (the token needs the `delete_repo` scope: `gh auth refresh -h github.com -s delete_repo`).
 
+Run the gate on a probe with `--no-icon`: a probe is never listed, so it has no icon.
 Three rounds usually reach one line. The probe is the reliable way to find a trigger; reading the file and
 guessing was wrong several times.
 

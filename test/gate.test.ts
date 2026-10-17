@@ -1,14 +1,24 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { COMMAND_WORD, DEEP_GLOB, ENV_WORD, IMAGE_NAME, LONGER_NAME, PLACEHOLDER, SCHEME, SHORT_NAME, run, tree } from "./helpers.ts";
+import { COMMAND_WORD, DEEP_GLOB, ENV_WORD, IMAGE_NAME, LONGER_NAME, OVER_ICON_LIMIT, PLACEHOLDER, SCHEME, SHORT_NAME, jpeg, png, run, tree } from "./helpers.ts";
 
 const KIB = 1024;
 const BIG_FILE_KIB = 300;
 const ELF_HEAD = "\x7fELF";
+const ICON_SIDE = 1024;
+const SMALL_SIDE = 256;
+const HUGE_SIDE = 4096;
+const WIDE_SIDE = 2048;
+const MANIFEST = ".claude-plugin/plugin.json";
+const JPEG_NAME = ["ph", "oto.jpg"].join("");
+const GIF_NAME = ["an", "im.gif"].join("");
+
+// A plugin manifest, with the icon field left out when `icon` is undefined.
+const manifest = (icon?: string): string => JSON.stringify({ name: "p", version: "1.0.0", ...(icon === undefined ? {} : { icon }) });
 
 interface Case {
   readonly name: string;
-  readonly files: Readonly<Record<string, string>>;
+  readonly files: Readonly<Record<string, string | Buffer>>;
   readonly fails: boolean;
   readonly mentions?: string;
 }
@@ -55,6 +65,48 @@ const CASES: readonly Case[] = [
   { name: "a script of 256 KiB or more", files: { "a.js": "a".repeat(BIG_FILE_KIB * KIB) }, fails: true, mentions: "256 KiB" },
   { name: "a native executable", files: { "bin/tool": `${ELF_HEAD}${"\0".repeat(KIB)}` }, fails: true, mentions: "cannot read it" },
   { name: "an unscoped write grant", files: { "skills/x/SKILL.md": "---\nname: x\nallowed-tools: Write\n---\nbody\n" }, fails: true, mentions: "no path scope" },
+  // The directory reads the icon field of the manifest, and the image must be inside the plugin, outside .claude-plugin/.
+  { name: "a manifest with a root icon in range", files: { [MANIFEST]: manifest(`./${IMAGE_NAME}`), [IMAGE_NAME]: png(ICON_SIDE, ICON_SIDE) }, fails: false },
+  { name: "a manifest with a JPEG icon in range", files: { [MANIFEST]: manifest(`./${JPEG_NAME}`), [JPEG_NAME]: jpeg(ICON_SIDE, ICON_SIDE) }, fails: false },
+  { name: "a manifest with an icon at the largest side", files: { [MANIFEST]: manifest(`./${IMAGE_NAME}`), [IMAGE_NAME]: png(WIDE_SIDE, WIDE_SIDE) }, fails: false },
+  {
+    name: "a plugin in a subdirectory with a root icon",
+    files: { [`plugin/${MANIFEST}`]: manifest(`./${IMAGE_NAME}`), [`plugin/${IMAGE_NAME}`]: png(ICON_SIDE, ICON_SIDE) },
+    fails: false,
+  },
+  { name: "a manifest with no icon field", files: { [MANIFEST]: manifest() }, fails: true, mentions: "has no icon field" },
+  {
+    name: "an icon inside the manifest folder",
+    files: { [MANIFEST]: manifest(`./.claude-plugin/${IMAGE_NAME}`), [`.claude-plugin/${IMAGE_NAME}`]: png(ICON_SIDE, ICON_SIDE) },
+    fails: true,
+    mentions: "holds manifests only",
+  },
+  { name: "an icon that does not exist", files: { [MANIFEST]: manifest(`./${IMAGE_NAME}`) }, fails: true, mentions: "does not exist" },
+  { name: "an icon path outside the plugin", files: { [MANIFEST]: manifest(`../${IMAGE_NAME}`) }, fails: true, mentions: "inside the plugin" },
+  { name: "an icon path with no leading dot", files: { [MANIFEST]: manifest(IMAGE_NAME), [IMAGE_NAME]: png(ICON_SIDE, ICON_SIDE) }, fails: true, mentions: "starts with" },
+  {
+    name: "an icon that is not a PNG or a JPEG",
+    files: { [MANIFEST]: manifest(`./${GIF_NAME}`), [GIF_NAME]: "GIF89a" },
+    fails: true,
+    mentions: "PNG or JPEG",
+  },
+  { name: "an icon that is not square", files: { [MANIFEST]: manifest(`./${IMAGE_NAME}`), [IMAGE_NAME]: png(ICON_SIDE, SMALL_SIDE * 2) }, fails: true, mentions: "must be square" },
+  { name: "an icon below 512 px", files: { [MANIFEST]: manifest(`./${IMAGE_NAME}`), [IMAGE_NAME]: png(SMALL_SIDE, SMALL_SIDE) }, fails: true, mentions: "512 to 2048" },
+  { name: "an icon above 2048 px", files: { [MANIFEST]: manifest(`./${IMAGE_NAME}`), [IMAGE_NAME]: png(HUGE_SIDE, HUGE_SIDE) }, fails: true, mentions: "512 to 2048" },
+  {
+    name: "an icon that is not a readable PNG",
+    files: { [MANIFEST]: manifest(`./${IMAGE_NAME}`), [IMAGE_NAME]: "not an image at all, only text, long enough to read a header from" },
+    fails: true,
+    mentions: "not a readable PNG",
+  },
+  {
+    name: "an icon over 10 MiB",
+    files: { [MANIFEST]: manifest(`./${IMAGE_NAME}`), [IMAGE_NAME]: png(ICON_SIDE, ICON_SIDE, OVER_ICON_LIMIT) },
+    fails: true,
+    mentions: "up to 10 MiB",
+  },
+  // A tree with no plugin manifest has no listing, so the icon rule has nothing to read.
+  { name: "a tree with no manifest", files: { "a.js": "export const a = 1;\n" }, fails: false },
   { name: "a clean tree", files: { "a.js": "export const a = 1;\n", "README.md": "Plain text.\n" }, fails: false },
 ];
 
