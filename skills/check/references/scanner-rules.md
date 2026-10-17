@@ -50,6 +50,27 @@ Also not a hold: a warning that a document has a download-and-execute pattern (`
 does not name the line. Two rewrites of a testing document (removing the word fetch, then an install command) did
 not clear it. When it is the only finding left, stop: the plugin is not held.
 
+## The listing icon (not a scan hold)
+
+The directory documents the `icon` field of `plugin.json` as the way to name the listing icon: "the path of an image file
+inside the plugin, such as `./logo.png`". The portal also names `.claude-plugin/icon.png` when the field is unset, and it
+shows no image for an icon it knows only by path. The listing then shows the first letter of the plugin name until the
+author uploads an image in the portal. The docs state no rule for where the image sits, and no plugin scan diagnostic
+mentions the icon. Rule 11 of the gate therefore fails only on the image, and prints the rest as notes.
+
+| What | Result | Why |
+|---|---|---|
+| The image is not a PNG or a JPEG, or does not parse as one | fail | the portal's upload form takes those two formats |
+| The image is not square, or is not 512 to 2048 px on each side | fail | the same form |
+| The file is over 10 MiB | fail | the same form |
+| `icon` names a file that does not exist, or a path outside the plugin | fail | the field is a path inside the plugin |
+| No `icon` field | note | documented, but the portal also reads the default file |
+| The path does not start with `./` | note | the docs show `./logo.png` |
+| A stylesheet names an image or a font in the repository | note | the directory warns (`UNREAD_ASSET_REFERENCED`) and holds the plugin if nothing runs the file |
+
+Whether the field, the default file or an upload wins when they differ is not documented. Raise `version` when the
+manifest changes so the directory reads the new one.
+
 ## Known conflicts with other plugins
 
 - `typescript-patterns-enforcer` asks for a regex tester link in the comment above every regex. The scan holds a

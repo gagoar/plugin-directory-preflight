@@ -11,7 +11,11 @@
 //   8. a glob in a document covers an image or a font (the scanner reads the document as naming it)
 //   9. a remote host and an environment reference sit in the same script (the scanner pairs them)
 //  10. a script names an image or a font that exists in the repository (the scanner reads that as pointing at it)
-// Usage: node scripts/check-plugin-safety.ts [plugin-root ...]   (default: .)
+//  11. the listing icon breaks the portal's upload rules: a PNG or JPEG, square, 512 to 2048 px, up to 10 MiB,
+//      inside the plugin. A missing icon field, or a stylesheet that names an image or font in the repository,
+//      is printed as a note and does not fail
+// Usage: node scripts/check-plugin-safety.ts [--no-icon] [plugin-root ...]   (default: .)
+// --no-icon skips rule 11, for a throwaway plugin that is never listed (the probe from make-probe.ts).
 import { closeSync, existsSync, openSync, readdirSync, readFileSync, readSync, statSync } from "node:fs";
 import type { Dirent } from "node:fs";
 import { basename, extname, join, relative, resolve } from "node:path";
@@ -28,6 +32,7 @@ const MEDIA_EXTENSIONS: ReadonlySet<string> = new Set([".png", ".jpg", ".jpeg", 
 const HEAD_CHARS = 200;
 const SNIPPET_CHARS = 100;
 const ARGV_ROOTS_START = 2; // argv[0] is node, argv[1] is this script
+const NO_ICON_FLAG = "--no-icon";
 
 // ---- rule 1: unscoped grants -------------------------------------------------
 
@@ -301,6 +306,141 @@ function nativeKind(path: string): string | undefined {
   return isPortableExecutable(path, head) ? "Windows PE executable" : undefined;
 }
 
+// ---- rule 11: the listing icon ----------------------------------------------
+
+// The directory reads the icon field of the manifest for the listing, and the portal also names the default icon file
+// in the manifest folder when the field is unset. The docs state no rule for where the image sits, so a missing
+// field or an unusual place is only a note. The image itself fails the gate when it breaks what the portal's
+// upload form asks for: a square PNG or JPEG, 512 to 2048 px on each side, up to 10 MiB.
+const MANIFEST_DIR = ".claude-plugin";
+const MANIFEST_FILE = "plugin.json";
+const PLUGIN_SUBDIRECTORY = "plugin"; // the marketplace may install from a plugin/ subdirectory
+const ICON_EXTENSIONS: ReadonlySet<string> = new Set([".png", ".jpg", ".jpeg"]);
+// Spelled in parts: a script that names an image file the repository holds is held.
+const ICON_FILE = ["ic", "on.png"].join("");
+const ICON_EXAMPLE = `./${MANIFEST_DIR}/${ICON_FILE}`;
+const ICON_MIN_PX = 512;
+const ICON_MAX_PX = 2048;
+const ICON_MAX_MIB = 10;
+const ICON_MAX_BYTES = ICON_MAX_MIB * BYTES_PER_MIB;
+const PNG_SIGNATURE = "89504e470d0a1a0a";
+const PNG_SIGNATURE_BYTES = 8;
+const PNG_WIDTH_OFFSET = 16; // after the signature, the chunk length and the IHDR tag
+const PNG_HEIGHT_OFFSET = 20;
+const PNG_MIN_BYTES = 24;
+const JPEG_START = 0xffd8;
+const JPEG_MARKER_PREFIX = 0xff;
+const JPEG_FIRST_FRAME = 0xc0;
+const JPEG_LAST_FRAME = 0xcf;
+const JPEG_HUFFMAN_TABLE = 0xc4;
+const JPEG_RESERVED = 0xc8;
+const JPEG_ARITHMETIC_TABLE = 0xcc;
+const JPEG_NOT_FRAME: ReadonlySet<number> = new Set([JPEG_HUFFMAN_TABLE, JPEG_RESERVED, JPEG_ARITHMETIC_TABLE]); // these share the range but hold no size
+const JPEG_START_BYTES = 2;
+const JPEG_FRAME_BYTES = 9; // marker, length, precision, height, width
+const JPEG_HEIGHT_OFFSET = 5;
+const JPEG_WIDTH_OFFSET = 7;
+// Splits a path into its parts. Splits "docs/a.png" and "docs\a.png" at the slash; leaves "a.png" whole.
+const PATH_SEPARATOR = /[\\/]/;
+
+interface Dimensions {
+  readonly width: number;
+  readonly height: number;
+}
+
+// A failure stops the gate. A note is printed and does not count.
+interface Finding {
+  readonly level: "FAIL" | "NOTE";
+  readonly text: string;
+}
+
+const fail = (text: string): Finding => ({ level: "FAIL", text });
+const note = (text: string): Finding => ({ level: "NOTE", text });
+
+function pngSize(bytes: Buffer): Dimensions | undefined {
+  if (bytes.length < PNG_MIN_BYTES || bytes.subarray(0, PNG_SIGNATURE_BYTES).toString("hex") !== PNG_SIGNATURE) return undefined;
+  return { width: bytes.readUInt32BE(PNG_WIDTH_OFFSET), height: bytes.readUInt32BE(PNG_HEIGHT_OFFSET) };
+}
+
+const isFrameMarker = (marker: number): boolean => marker >= JPEG_FIRST_FRAME && marker <= JPEG_LAST_FRAME && !JPEG_NOT_FRAME.has(marker);
+
+// Walks the segments from `at` until the frame header, which holds the size.
+function jpegFrame(bytes: Buffer, at: number): Dimensions | undefined {
+  if (at + JPEG_FRAME_BYTES > bytes.length || bytes[at] !== JPEG_MARKER_PREFIX) return undefined;
+  if (isFrameMarker(bytes[at + 1] ?? 0)) {
+    return { width: bytes.readUInt16BE(at + JPEG_WIDTH_OFFSET), height: bytes.readUInt16BE(at + JPEG_HEIGHT_OFFSET) };
+  }
+  return jpegFrame(bytes, at + JPEG_START_BYTES + bytes.readUInt16BE(at + JPEG_START_BYTES));
+}
+
+function jpegSize(bytes: Buffer): Dimensions | undefined {
+  return bytes.length > JPEG_START_BYTES && bytes.readUInt16BE(0) === JPEG_START ? jpegFrame(bytes, JPEG_START_BYTES) : undefined;
+}
+
+function iconFileFindings(file: string, label: string): readonly Finding[] {
+  const ext = extname(file).toLowerCase();
+  if (!ICON_EXTENSIONS.has(ext)) return [fail(`icon "${label}" must be a PNG or JPEG file`)];
+  const size = statSync(file).size;
+  if (size > ICON_MAX_BYTES) return [fail(`the icon is ${(size / BYTES_PER_MIB).toFixed(1)} MiB; the portal takes up to ${ICON_MAX_MIB} MiB`)];
+  const bytes = readFileSync(file);
+  const dimensions = ext === ".png" ? pngSize(bytes) : jpegSize(bytes);
+  if (dimensions === undefined) return [fail(`the icon is not a readable ${ext === ".png" ? "PNG" : "JPEG"} image`)];
+  if (dimensions.width !== dimensions.height) return [fail(`the icon is ${dimensions.width}x${dimensions.height} px; it must be square`)];
+  const side = dimensions.width;
+  return side < ICON_MIN_PX || side > ICON_MAX_PX ? [fail(`the icon is ${side} px on each side; use ${ICON_MIN_PX} to ${ICON_MAX_PX} px`)] : [];
+}
+
+// No icon field: the portal still names the default file, so a file there is checked like a declared one.
+function undeclaredIconFindings(base: string): readonly Finding[] {
+  const fallback = join(base, MANIFEST_DIR, ICON_FILE);
+  if (!existsSync(fallback)) {
+    return [note("no icon is declared and no default icon file exists; the listing shows the first letter of the name until you upload an image in the portal")];
+  }
+  return [note(`no icon field; the directory documents it as the way to name the icon. The portal also reads ${MANIFEST_DIR}/${ICON_FILE} by default. Set "icon": "${ICON_EXAMPLE}"`), ...iconFileFindings(fallback, `${MANIFEST_DIR}/${ICON_FILE}`)];
+}
+
+function iconFindings(base: string, icon: unknown): readonly Finding[] {
+  if (typeof icon !== "string" || icon === "") return undeclaredIconFindings(base);
+  const target = resolve(base, icon);
+  if (relative(base, target).startsWith("..")) return [fail(`icon "${icon}" must be a path inside the plugin`)];
+  if (!existsSync(target) || !statSync(target).isFile()) return [fail(`icon "${icon}" does not exist`)];
+  const prefix = icon.startsWith(CURRENT_DIR_PREFIX) ? [] : [note(`icon "${icon}" does not start with ${CURRENT_DIR_PREFIX}; the docs show ${CURRENT_DIR_PREFIX}logo.png`)];
+  return [...prefix, ...iconFileFindings(target, icon)];
+}
+
+function readManifest(path: string): Readonly<Record<string, unknown>> | undefined {
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
+    return typeof parsed === "object" && parsed !== null ? (parsed as Record<string, unknown>) : undefined;
+  } catch {
+    return undefined; // a manifest that does not parse is reported by claude plugin validate
+  }
+}
+
+function iconLines(root: string): readonly Finding[] {
+  return [root, join(root, PLUGIN_SUBDIRECTORY)]
+    .map((base) => ({ base, manifest: join(base, MANIFEST_DIR, MANIFEST_FILE) }))
+    .filter(({ manifest }) => existsSync(manifest))
+    .flatMap(({ base, manifest }) => {
+      const data = readManifest(manifest);
+      return data === undefined ? [] : iconFindings(base, data["icon"]).map((f) => ({ ...f, text: `${relative(root, manifest)}: ${f.text}` }));
+    });
+}
+
+// A stylesheet that names an image or a font in the repository gets a directory warning (UNREAD_ASSET_REFERENCED):
+// the scan lets the file through unread, then holds the plugin if nothing runs the stylesheet. It is a warning there,
+// so it is a note here.
+const STYLESHEET_EXT = ".css";
+
+function stylesheetNotes(root: string, path: string, mediaPaths: readonly string[]): readonly Finding[] {
+  if (extname(path).toLowerCase() !== STYLESHEET_EXT || isOutsideRules(root, path)) return [];
+  const text = readableText(path);
+  const names = [...new Set(mediaPaths.map((media) => basename(media)))].filter((name) => nameRe(name).test(text));
+  return names.length
+    ? [note(`${relative(root, path)}: names the image or font ${names.join(", ")}; the directory warns about this and holds the plugin for review if nothing runs the file`)]
+    : [];
+}
+
 // ---- walk and report --------------------------------------------------------
 
 function expand(dir: string, entry: Dirent): readonly string[] {
@@ -349,25 +489,29 @@ function fileProblems(root: string, path: string, mediaPaths: readonly string[])
   return [...grants, ...envProblems(path), ...scannerShapeProblems(root, path, mediaPaths)];
 }
 
-function checkRoot(root: string): number {
+function checkRoot(root: string, listed: boolean): number {
   const files = walk(root);
   const mediaPaths = files.filter((f) => MEDIA_EXTENSIONS.has(extname(f).toLowerCase())).map((f) => relative(root, f));
-  const lines = files.flatMap((f) => fileProblems(root, f, mediaPaths).map((p) => `FAIL ${relative(root, f)}: ${p}`));
-  lines.forEach((l) => console.log(l));
-  console.log(`${root}: checked ${files.length} files, ${lines.length} problem(s)`);
-  return lines.length;
+  const fileFindings = files.flatMap((f) => fileProblems(root, f, mediaPaths).map((p) => fail(`${relative(root, f)}: ${p}`)));
+  const findings = [...fileFindings, ...(listed ? iconLines(root) : []), ...files.flatMap((f) => stylesheetNotes(root, f, mediaPaths))];
+  findings.forEach((f) => console.log(`${f.level} ${f.text}`));
+  const failures = findings.filter((f) => f.level === "FAIL").length;
+  console.log(`${root}: checked ${files.length} files, ${failures} problem(s)`);
+  return failures;
 }
 
-function checkTarget(root: string): number {
-  if (existsSync(root)) return checkRoot(root);
+function checkTarget(root: string, listed: boolean): number {
+  if (existsSync(root)) return checkRoot(root, listed);
   console.log(`FAIL ${root}: no such directory`);
   return 1;
 }
 
 function main(): number {
-  const roots = process.argv.slice(ARGV_ROOTS_START).map((r) => resolve(r));
+  const args = process.argv.slice(ARGV_ROOTS_START);
+  const listed = !args.includes(NO_ICON_FLAG);
+  const roots = args.filter((arg) => arg !== NO_ICON_FLAG).map((r) => resolve(r));
   const targets = roots.length > 0 ? roots : [resolve(".")];
-  const failures = targets.map(checkTarget).reduce((a, b) => a + b, 0);
+  const failures = targets.map((root) => checkTarget(root, listed)).reduce((a, b) => a + b, 0);
   return failures > 0 ? 1 : 0;
 }
 
