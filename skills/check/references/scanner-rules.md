@@ -52,20 +52,24 @@ not clear it. When it is the only finding left, stop: the plugin is not held.
 
 ## The listing icon (not a scan hold)
 
-The directory reads the `icon` field of `plugin.json` for the listing icon. Rule 11 of the gate checks it, because a
-missing or misplaced icon is not a hold: the listing shows the first letter of the plugin name instead.
+The directory documents the `icon` field of `plugin.json` as the way to name the listing icon: "the path of an image file
+inside the plugin, such as `./logo.png`". The portal also names `.claude-plugin/icon.png` when the field is unset, and it
+shows no image for an icon it knows only by path. The listing then shows the first letter of the plugin name until the
+author uploads an image in the portal. The docs state no rule for where the image sits, and no plugin scan diagnostic
+mentions the icon. Rule 11 of the gate therefore fails only on the image, and prints the rest as notes.
 
-| What fails | Why | Fix |
+| What | Result | Why |
 |---|---|---|
-| No `icon` field | the directory has no image to read | add `"icon": "./icon.png"` |
-| The image is inside `.claude-plugin/` | that folder holds manifests only; the listing did not find an image there | move it to the plugin root, then point `icon` at it |
-| The path does not start with `./`, leaves the plugin, or names a missing file | the field is a path inside the plugin | use a path such as `./icon.png` |
-| The file is not a PNG or a JPEG, or does not parse as one | the listing takes those two formats | export a PNG |
-| The image is not square, or is not 512 to 2048 px on each side | the listing crops and scales a square | export a square image in range |
-| The file is over 10 MiB | the listing takes up to 10 MiB | shrink it |
+| The image is not a PNG or a JPEG, or does not parse as one | fail | the portal's upload form takes those two formats |
+| The image is not square, or is not 512 to 2048 px on each side | fail | the same form |
+| The file is over 10 MiB | fail | the same form |
+| `icon` names a file that does not exist, or a path outside the plugin | fail | the field is a path inside the plugin |
+| No `icon` field | note | documented, but the portal also reads the default file |
+| The path does not start with `./` | note | the docs show `./logo.png` |
+| A stylesheet names an image or a font in the repository | note | the directory warns (`UNREAD_ASSET_REFERENCED`) and holds the plugin if nothing runs the file |
 
-The portal also has a manual icon upload. It goes through review, and a version of the plugin must be published before
-the icon in the manifest shows. Raise `version` so the directory publishes the new image.
+Whether the field, the default file or an upload wins when they differ is not documented. Raise `version` when the
+manifest changes so the directory reads the new one.
 
 ## Known conflicts with other plugins
 
