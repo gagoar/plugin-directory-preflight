@@ -23,8 +23,9 @@ Scripts live in `${CLAUDE_PLUGIN_ROOT}/scripts/`. Run them with `node` (Node 22.
    `node scripts/check-plugin-safety.ts .`
    The gate also checks the listing icon. `plugin.json` should set `icon` to the image, for example
    `./.claude-plugin/icon.png`: the directory documents that field, and the portal also reads that default file when the
-   field is unset. The image must be a square PNG or JPEG, 512 to 2048 px on each side, up to 10 MiB. A missing field is
-   only a note. The portal shows no image for an icon it knows only by path, so upload the icon in the portal as well.
+   field is unset. The image must be a square PNG or JPEG, 512 to 2048 px on each side, up to 10 MiB. If an icon file
+   exists and `icon` does not name it, or the plugin has no icon, the gate warns. If `icon` does not start with `./`, names a path that does not
+   resolve (or differs in letter case from the file), the gate fails. The portal shows no image for an icon it knows only by path, so upload the icon in the portal as well.
    A stylesheet that names an image or a font in the repo is a note too: the directory warns about it.
 4. Run `claude plugin validate <plugin-root> --strict` (also on the manifest files).
 5. Fix **every** hit in one pass, then run steps 3 and 4 again. Do not stop at the first hit: the scan reveals

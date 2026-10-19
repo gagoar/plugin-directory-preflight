@@ -56,7 +56,7 @@ The directory documents the `icon` field of `plugin.json` as the way to name the
 inside the plugin, such as `./logo.png`". The portal also names `.claude-plugin/icon.png` when the field is unset, and it
 shows no image for an icon it knows only by path. The listing then shows the first letter of the plugin name until the
 author uploads an image in the portal. The docs state no rule for where the image sits, and no plugin scan diagnostic
-mentions the icon. Rule 11 of the gate therefore fails only on the image, and prints the rest as notes.
+mentions the icon. Rule 11 of the gate therefore fails when a named icon is wrong, and warns when the icon is unnamed or absent.
 
 | What | Result | Why |
 |---|---|---|
@@ -64,8 +64,10 @@ mentions the icon. Rule 11 of the gate therefore fails only on the image, and pr
 | The image is not square, or is not 512 to 2048 px on each side | fail | the same form |
 | The file is over 10 MiB | fail | the same form |
 | `icon` names a file that does not exist, or a path outside the plugin | fail | the field is a path inside the plugin |
-| No `icon` field | note | documented, but the portal also reads the default file |
-| The path does not start with `./` | note | the docs show `./logo.png` |
+| `icon` does not start with `./` | fail | every manifest path starts with `./`; the docs show `./logo.png` |
+| `icon` names a path whose letter case differs from the file | fail | the directory reads a case-sensitive checkout, so a macOS or Windows disk hides the mistake |
+| An icon file exists at `.claude-plugin/` and `plugin.json` has no `icon` field | warn | the directory reads the field, so the listing finds no image; the file is there but nothing names it |
+| No `icon` field and no icon file | warn | the listing shows the first letter of the name until you add an image |
 | A stylesheet names an image or a font in the repository | note | the directory warns (`UNREAD_ASSET_REFERENCED`) and holds the plugin if nothing runs the file |
 
 Whether the field, the default file or an upload wins when they differ is not documented. Raise `version` when the
