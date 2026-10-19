@@ -1,7 +1,7 @@
 {
   "name": "plugin-directory-preflight",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Scripts behind the plugin-directory-preflight skill. No dependencies.",
   "type": "module",
   "scripts": {

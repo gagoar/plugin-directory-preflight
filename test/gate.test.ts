@@ -78,10 +78,10 @@ const CASES: readonly Case[] = [
   },
   { name: "no icon field and no default file is only a note", files: { [MANIFEST]: manifest() }, fails: false, mentions: "NOTE .*no icon is declared" },
   {
-    name: "no icon field with a default file in range is a note",
+    name: "no icon field with a default file in range fails: the icon exists and is not named",
     files: { [MANIFEST]: manifest(), [`.claude-plugin/${IMAGE_NAME}`]: png(ICON_SIDE, ICON_SIDE) },
-    fails: false,
-    mentions: "NOTE .*also reads",
+    fails: true,
+    mentions: "FAIL .*does not declare it",
   },
   {
     name: "no icon field with a default file out of range",

@@ -12,8 +12,8 @@
 //   9. a remote host and an environment reference sit in the same script (the scanner pairs them)
 //  10. a script names an image or a font that exists in the repository (the scanner reads that as pointing at it)
 //  11. the listing icon breaks the portal's upload rules: a PNG or JPEG, square, 512 to 2048 px, up to 10 MiB,
-//      inside the plugin. A missing icon field, or a stylesheet that names an image or font in the repository,
-//      is printed as a note and does not fail
+//      inside the plugin; or an icon file exists and plugin.json does not name it at a path that resolves to it.
+//      No icon at all, or a stylesheet that names an image or font in the repository, is printed as a note
 // Usage: node scripts/check-plugin-safety.ts [--no-icon] [plugin-root ...]   (default: .)
 // --no-icon skips rule 11, for a throwaway plugin that is never listed (the probe from make-probe.ts).
 import { closeSync, existsSync, openSync, readdirSync, readFileSync, readSync, statSync } from "node:fs";
@@ -390,13 +390,13 @@ function iconFileFindings(file: string, label: string): readonly Finding[] {
   return side < ICON_MIN_PX || side > ICON_MAX_PX ? [fail(`the icon is ${side} px on each side; use ${ICON_MIN_PX} to ${ICON_MAX_PX} px`)] : [];
 }
 
-// No icon field: the portal still names the default file, so a file there is checked like a declared one.
+// No icon field: a file at the default place is an icon the manifest fails to name, so that fails; no icon at all is a note.
 function undeclaredIconFindings(base: string): readonly Finding[] {
   const fallback = join(base, MANIFEST_DIR, ICON_FILE);
   if (!existsSync(fallback)) {
     return [note("no icon is declared and no default icon file exists; the listing shows the first letter of the name until you upload an image in the portal")];
   }
-  return [note(`no icon field; the directory documents it as the way to name the icon. The portal also reads ${MANIFEST_DIR}/${ICON_FILE} by default. Set "icon": "${ICON_EXAMPLE}"`), ...iconFileFindings(fallback, `${MANIFEST_DIR}/${ICON_FILE}`)];
+  return [fail(`the plugin has an icon at ${MANIFEST_DIR}/${ICON_FILE} but plugin.json does not declare it; the directory reads the icon field, so the listing finds no image. Set "icon": "${ICON_EXAMPLE}"`), ...iconFileFindings(fallback, `${MANIFEST_DIR}/${ICON_FILE}`)];
 }
 
 function iconFindings(base: string, icon: unknown): readonly Finding[] {
