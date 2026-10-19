@@ -56,7 +56,7 @@ The directory documents the `icon` field of `plugin.json` as the way to name the
 inside the plugin, such as `./logo.png`". The portal also names `.claude-plugin/icon.png` when the field is unset, and it
 shows no image for an icon it knows only by path. The listing then shows the first letter of the plugin name until the
 author uploads an image in the portal. The docs state no rule for where the image sits, and no plugin scan diagnostic
-mentions the icon. Rule 11 of the gate therefore fails when an icon exists and is wrong or unnamed, and prints an absent icon as a note.
+mentions the icon. Rule 11 of the gate therefore fails when a named icon is wrong, and warns when the icon is unnamed or absent.
 
 | What | Result | Why |
 |---|---|---|
@@ -64,8 +64,9 @@ mentions the icon. Rule 11 of the gate therefore fails when an icon exists and i
 | The image is not square, or is not 512 to 2048 px on each side | fail | the same form |
 | The file is over 10 MiB | fail | the same form |
 | `icon` names a file that does not exist, or a path outside the plugin | fail | the field is a path inside the plugin |
-| An icon file exists at `.claude-plugin/` and `plugin.json` has no `icon` field | fail | the directory reads the field, so the listing finds no image; the file is there but nothing names it |
-| No `icon` field and no icon file | note | nothing to name; the listing shows the first letter until you upload an image |
+| `icon` names a path whose letter case differs from the file | fail | the directory reads a case-sensitive checkout, so a macOS or Windows disk hides the mistake |
+| An icon file exists at `.claude-plugin/` and `plugin.json` has no `icon` field | warn | the directory reads the field, so the listing finds no image; the file is there but nothing names it |
+| No `icon` field and no icon file | warn | the listing shows the first letter of the name until you add an image |
 | The path does not start with `./` | note | the docs show `./logo.png` |
 | A stylesheet names an image or a font in the repository | note | the directory warns (`UNREAD_ASSET_REFERENCED`) and holds the plugin if nothing runs the file |
 

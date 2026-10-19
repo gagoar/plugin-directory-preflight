@@ -12,8 +12,9 @@
 //   9. a remote host and an environment reference sit in the same script (the scanner pairs them)
 //  10. a script names an image or a font that exists in the repository (the scanner reads that as pointing at it)
 //  11. the listing icon breaks the portal's upload rules: a PNG or JPEG, square, 512 to 2048 px, up to 10 MiB,
-//      inside the plugin; or an icon file exists and plugin.json does not name it at a path that resolves to it.
-//      No icon at all, or a stylesheet that names an image or font in the repository, is printed as a note
+//      inside the plugin, and named at a path that exists with the same letter case. An icon file that plugin.json
+//      does not name, and a plugin with no icon, print a warning. A stylesheet that names an image or font in the
+//      repository prints a note
 // Usage: node scripts/check-plugin-safety.ts [--no-icon] [plugin-root ...]   (default: .)
 // --no-icon skips rule 11, for a throwaway plugin that is never listed (the probe from make-probe.ts).
 import { closeSync, existsSync, openSync, readdirSync, readFileSync, readSync, statSync } from "node:fs";
@@ -350,11 +351,12 @@ interface Dimensions {
 
 // A failure stops the gate. A note is printed and does not count.
 interface Finding {
-  readonly level: "FAIL" | "NOTE";
+  readonly level: "FAIL" | "WARN" | "NOTE";
   readonly text: string;
 }
 
 const fail = (text: string): Finding => ({ level: "FAIL", text });
+const warn = (text: string): Finding => ({ level: "WARN", text });
 const note = (text: string): Finding => ({ level: "NOTE", text });
 
 function pngSize(bytes: Buffer): Dimensions | undefined {
@@ -390,13 +392,23 @@ function iconFileFindings(file: string, label: string): readonly Finding[] {
   return side < ICON_MIN_PX || side > ICON_MAX_PX ? [fail(`the icon is ${side} px on each side; use ${ICON_MIN_PX} to ${ICON_MAX_PX} px`)] : [];
 }
 
-// No icon field: a file at the default place is an icon the manifest fails to name, so that fails; no icon at all is a note.
+// No icon field: a file at the default place is an icon the manifest fails to name, and no icon at all leaves the listing bare. Both warn.
 function undeclaredIconFindings(base: string): readonly Finding[] {
   const fallback = join(base, MANIFEST_DIR, ICON_FILE);
   if (!existsSync(fallback)) {
-    return [note("no icon is declared and no default icon file exists; the listing shows the first letter of the name until you upload an image in the portal")];
+    return [warn("the plugin has no icon; the listing shows the first letter of the name until you add an image and name it in plugin.json")];
   }
-  return [fail(`the plugin has an icon at ${MANIFEST_DIR}/${ICON_FILE} but plugin.json does not declare it; the directory reads the icon field, so the listing finds no image. Set "icon": "${ICON_EXAMPLE}"`), ...iconFileFindings(fallback, `${MANIFEST_DIR}/${ICON_FILE}`)];
+  return [warn(`the plugin has an icon at ${MANIFEST_DIR}/${ICON_FILE} but plugin.json does not name it; the directory reads the icon field, so the listing finds no image. Set "icon": "${ICON_EXAMPLE}"`), ...iconFileFindings(fallback, `${MANIFEST_DIR}/${ICON_FILE}`)];
+}
+
+// A case-insensitive disk (macOS, Windows) finds the file under the wrong case; the directory's checkout does not.
+function caseMismatch(base: string, target: string): string | undefined {
+  const parts = relative(base, target).split(PATH_SEPARATOR);
+  const walked = parts.reduce<{ dir: string; real: string[] }>((acc, part) => {
+    const actual = readdirSync(acc.dir).find((name) => name.toLowerCase() === part.toLowerCase());
+    return { dir: join(acc.dir, actual ?? part), real: [...acc.real, actual ?? part] };
+  }, { dir: base, real: [] });
+  return walked.real.join("/") === parts.join("/") ? undefined : walked.real.join("/");
 }
 
 function iconFindings(base: string, icon: unknown): readonly Finding[] {
@@ -404,6 +416,8 @@ function iconFindings(base: string, icon: unknown): readonly Finding[] {
   const target = resolve(base, icon);
   if (relative(base, target).startsWith("..")) return [fail(`icon "${icon}" must be a path inside the plugin`)];
   if (!existsSync(target) || !statSync(target).isFile()) return [fail(`icon "${icon}" does not exist`)];
+  const spelled = caseMismatch(base, target);
+  if (spelled !== undefined) return [fail(`icon "${icon}" differs in letter case from the file ${spelled}; the directory reads the repository on a case-sensitive file system`)];
   const prefix = icon.startsWith(CURRENT_DIR_PREFIX) ? [] : [note(`icon "${icon}" does not start with ${CURRENT_DIR_PREFIX}; the docs show ${CURRENT_DIR_PREFIX}logo.png`)];
   return [...prefix, ...iconFileFindings(target, icon)];
 }
