@@ -401,14 +401,20 @@ function undeclaredIconFindings(base: string): readonly Finding[] {
   return [warn(`the plugin has an icon at ${MANIFEST_DIR}/${ICON_FILE} but plugin.json does not name it; the directory reads the icon field, so the listing finds no image. Set "icon": "${ICON_EXAMPLE}"`), ...iconFileFindings(fallback, `${MANIFEST_DIR}/${ICON_FILE}`)];
 }
 
-// A case-insensitive disk (macOS, Windows) finds the file under the wrong case; the directory's checkout does not.
+// The directory reads a case-sensitive checkout. A case-insensitive disk (macOS, Windows) finds the file under the
+// wrong case, and a case-sensitive one (Linux) does not; both report the same: the real spelling, or undefined when the
+// path matches exactly or no file matches at all.
 function caseMismatch(base: string, target: string): string | undefined {
   const parts = relative(base, target).split(PATH_SEPARATOR);
-  const walked = parts.reduce<{ dir: string; real: string[] }>((acc, part) => {
-    const actual = readdirSync(acc.dir).find((name) => name.toLowerCase() === part.toLowerCase());
-    return { dir: join(acc.dir, actual ?? part), real: [...acc.real, actual ?? part] };
-  }, { dir: base, real: [] });
-  return walked.real.join("/") === parts.join("/") ? undefined : walked.real.join("/");
+  const real: string[] = [];
+  let dir = base;
+  for (const part of parts) {
+    const actual = existsSync(dir) ? readdirSync(dir).find((name) => name.toLowerCase() === part.toLowerCase()) : undefined;
+    if (actual === undefined) return undefined;
+    real.push(actual);
+    dir = join(dir, actual);
+  }
+  return real.join("/") === parts.join("/") ? undefined : real.join("/");
 }
 
 // The manifest rule: every path starts with ./ and stays inside the plugin. A bare file name or a path such as "assets/logo"
@@ -418,9 +424,9 @@ function iconFindings(base: string, icon: unknown): readonly Finding[] {
   const prefix = icon.startsWith(CURRENT_DIR_PREFIX) ? [] : [fail(`icon "${icon}" must start with ${CURRENT_DIR_PREFIX}, for example "${CURRENT_DIR_PREFIX}logo.png"; every manifest path does`)];
   const target = resolve(base, icon);
   if (relative(base, target).startsWith("..")) return [...prefix, fail(`icon "${icon}" must be a path inside the plugin`)];
-  if (!existsSync(target) || !statSync(target).isFile()) return [...prefix, fail(`icon "${icon}" does not exist`)];
   const spelled = caseMismatch(base, target);
   if (spelled !== undefined) return [...prefix, fail(`icon "${icon}" differs in letter case from the file ${spelled}; the directory reads the repository on a case-sensitive file system`)];
+  if (!existsSync(target) || !statSync(target).isFile()) return [...prefix, fail(`icon "${icon}" does not exist`)];
   return [...prefix, ...iconFileFindings(target, icon)];
 }
 
