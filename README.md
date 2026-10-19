@@ -54,7 +54,7 @@ The gate fails on things the upload scan holds plugins for review over:
 - A glob in a document that covers images or fonts.
 - A script that names an image or a font that exists in the repository.
 - A remote host and an environment reference in the same script. A Markdown file may hold the link.
-- A listing icon that breaks the portal's upload rules: not a PNG or JPEG, not square, outside 512 to 2048 px,
+- A listing icon that breaks the portal's upload rules: a path that does not start with `./`, not a PNG or JPEG, not square, outside 512 to 2048 px,
   over 10 MiB, missing at the declared path, differing in letter case from the file, or outside the plugin. This is
   not a scan hold. An icon file that `plugin.json` does not name, and a plugin with no icon, print a warning and do not
   fail. A stylesheet that names an image or a font in the repo prints a note. `--no-icon` skips the

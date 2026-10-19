@@ -90,10 +90,10 @@ const CASES: readonly Case[] = [
     mentions: "512 to 2048",
   },
   {
-    name: "an icon path with no leading dot is a note",
+    name: "an icon path with no leading ./ fails even when the file exists",
     files: { [MANIFEST]: manifest(IMAGE_NAME), [IMAGE_NAME]: png(ICON_SIDE, ICON_SIDE) },
-    fails: false,
-    mentions: "NOTE .*does not start with",
+    fails: true,
+    mentions: "FAIL .*must start with",
   },
   {
     name: "an icon path whose letter case differs from the file",

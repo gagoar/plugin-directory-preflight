@@ -12,7 +12,7 @@
 //   9. a remote host and an environment reference sit in the same script (the scanner pairs them)
 //  10. a script names an image or a font that exists in the repository (the scanner reads that as pointing at it)
 //  11. the listing icon breaks the portal's upload rules: a PNG or JPEG, square, 512 to 2048 px, up to 10 MiB,
-//      inside the plugin, and named at a path that exists with the same letter case. An icon file that plugin.json
+//      inside the plugin, and named at a path that starts with ./ and exists with the same letter case. An icon file that plugin.json
 //      does not name, and a plugin with no icon, print a warning. A stylesheet that names an image or font in the
 //      repository prints a note
 // Usage: node scripts/check-plugin-safety.ts [--no-icon] [plugin-root ...]   (default: .)
@@ -411,14 +411,16 @@ function caseMismatch(base: string, target: string): string | undefined {
   return walked.real.join("/") === parts.join("/") ? undefined : walked.real.join("/");
 }
 
+// The manifest rule: every path starts with ./ and stays inside the plugin. A bare file name or a path such as "assets/logo"
+// is the mistake this check exists for, so it fails even when the file exists.
 function iconFindings(base: string, icon: unknown): readonly Finding[] {
   if (typeof icon !== "string" || icon === "") return undeclaredIconFindings(base);
+  const prefix = icon.startsWith(CURRENT_DIR_PREFIX) ? [] : [fail(`icon "${icon}" must start with ${CURRENT_DIR_PREFIX}, for example "${CURRENT_DIR_PREFIX}logo.png"; every manifest path does`)];
   const target = resolve(base, icon);
-  if (relative(base, target).startsWith("..")) return [fail(`icon "${icon}" must be a path inside the plugin`)];
-  if (!existsSync(target) || !statSync(target).isFile()) return [fail(`icon "${icon}" does not exist`)];
+  if (relative(base, target).startsWith("..")) return [...prefix, fail(`icon "${icon}" must be a path inside the plugin`)];
+  if (!existsSync(target) || !statSync(target).isFile()) return [...prefix, fail(`icon "${icon}" does not exist`)];
   const spelled = caseMismatch(base, target);
-  if (spelled !== undefined) return [fail(`icon "${icon}" differs in letter case from the file ${spelled}; the directory reads the repository on a case-sensitive file system`)];
-  const prefix = icon.startsWith(CURRENT_DIR_PREFIX) ? [] : [note(`icon "${icon}" does not start with ${CURRENT_DIR_PREFIX}; the docs show ${CURRENT_DIR_PREFIX}logo.png`)];
+  if (spelled !== undefined) return [...prefix, fail(`icon "${icon}" differs in letter case from the file ${spelled}; the directory reads the repository on a case-sensitive file system`)];
   return [...prefix, ...iconFileFindings(target, icon)];
 }
 
